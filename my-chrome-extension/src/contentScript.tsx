@@ -96,6 +96,32 @@ function closePanel() {
   document.body.appendChild(btn);
 }
 
+function openPanel(selectedText?: string) {
+  console.log('openPanel() called');
+  console.log('Container exists:', !!container);
+  console.log('Container display before:', container?.style.display);
+  
+  panelOpen = true;
+  setBodyMargin(true);
+  container!.style.display = 'flex';
+  
+  console.log('Container display after:', container?.style.display);
+  console.log('Root exists:', !!root);
+  
+  if (!root) {
+    console.log('Creating new React root');
+    root = createRoot(container!);
+  }
+  
+  console.log('Rendering ChatPanel component');
+  root.render(
+    <ChatPanel onClose={closePanel} initialInputValue={selectedText} />
+  );
+  document.body.appendChild(btn); // ensure button is last
+  console.log('Panel should now be open');
+  console.log('Final container display:', container?.style.display);
+}
+
 // Start dragging the button
 btn.addEventListener('mousedown', (e) => {
   isDragging = true;
@@ -146,6 +172,7 @@ document.head.appendChild(animStyle);
 
 // --- Button Click: Toggle Panel ---
 btn.addEventListener('click', () => {
+  console.log('Fox button clicked!');
   if (dragMoved) {
     dragMoved = false;
     return;
@@ -158,17 +185,10 @@ btn.addEventListener('click', () => {
 
   // Toggle the chat panel
   if (!panelOpen) {
-    panelOpen = true;
-    setBodyMargin(true);
-    container!.style.display = 'flex';
-    if (!root) {
-      root = createRoot(container!);
-    }
-    root.render(
-      <ChatPanel onClose={closePanel} />
-    );
-    document.body.appendChild(btn); // ensure button is last
+    console.log('Fox button: calling openPanel()');
+    openPanel();
   } else {
+    console.log('Fox button: calling closePanel()');
     closePanel();
   }
 });
@@ -199,3 +219,133 @@ document.addEventListener('keydown', (e) => {
 // --- ChatPanel Component ---
 // Handles chat UI, user input, and can be extended to send/receive messages from a backend API.
 // See ChatPanel.tsx for details. 
+
+// Text selection popup functionality
+let selectionPopup: HTMLDivElement | null = null;
+
+function createSelectionPopup() {
+  console.log('Creating selection popup...');
+  if (selectionPopup) {
+    document.body.removeChild(selectionPopup);
+  }
+  
+  selectionPopup = document.createElement('div');
+  selectionPopup.style.cssText = `
+    position: fixed;
+    background: #ff5c1a;
+    border: 1px solid #ff5c1a;
+    border-radius: 8px;
+    padding: 8px 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 10000;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 14px;
+    color: white;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: none;
+  `;
+  
+  selectionPopup.innerHTML = 'Ask Focus Fox anything...';
+  selectionPopup.addEventListener('mousedown', (e: MouseEvent) => {
+    console.log('Popup mousedown!');
+    e.stopPropagation();
+    e.preventDefault();
+    
+    // Get selected text before clearing selection
+    const selection = window.getSelection();
+    const selectedText = selection ? selection.toString().trim() : undefined;
+    
+    // Clear the text selection
+    if (selection) {
+      selection.removeAllRanges();
+    }
+    
+    // Hide popup immediately
+    hideSelectionPopup();
+    
+    // Open chat panel with selected text in input
+    if (!panelOpen) {
+      console.log('Calling openPanel() with selected text:', selectedText);
+      openPanel(selectedText);
+    }
+  });
+  
+  // Hover effects
+  selectionPopup.addEventListener('mouseenter', () => {
+    if (selectionPopup) {
+      selectionPopup.style.background = '#ff7a3a';
+      selectionPopup.style.borderColor = '#ff7a3a';
+    }
+  });
+  
+  selectionPopup.addEventListener('mouseleave', () => {
+    if (selectionPopup) {
+      selectionPopup.style.background = '#ff5c1a';
+      selectionPopup.style.borderColor = '#ff5c1a';
+    }
+  });
+  
+  document.body.appendChild(selectionPopup);
+  console.log('Selection popup created and added to DOM');
+  
+  // Prevent popup from being hidden when clicking on it
+  selectionPopup.addEventListener('mousedown', (e: MouseEvent) => {
+    e.stopPropagation();
+  });
+}
+
+function showSelectionPopup() {
+  console.log('showSelectionPopup called');
+  const selection = window.getSelection();
+  if (!selection || !selection.toString().trim() || !selectionPopup) {
+    console.log('No selection or popup, returning');
+    return;
+  }
+  
+  const range = selection.getRangeAt(0);
+  const rect = range.getBoundingClientRect();
+  
+  // Position popup below the selection
+  selectionPopup.style.left = `${rect.left + window.scrollX}px`;
+  selectionPopup.style.top = `${rect.bottom + window.scrollY + 5}px`;
+  selectionPopup.style.display = 'block';
+  console.log('Popup should now be visible');
+}
+
+function hideSelectionPopup() {
+  if (selectionPopup) {
+    selectionPopup.style.display = 'none';
+  }
+}
+
+// Listen for text selection
+document.addEventListener('mouseup', () => {
+  const selection = window.getSelection();
+  if (selection && selection.toString().trim()) {
+    // Small delay to ensure selection is complete
+    setTimeout(() => {
+      showSelectionPopup();
+    }, 100);
+  } else {
+    hideSelectionPopup();
+  }
+});
+
+// Hide popup when clicking outside
+document.addEventListener('mousedown', (e) => {
+  if (selectionPopup && !selectionPopup.contains(e.target as Node)) {
+    hideSelectionPopup();
+  }
+});
+
+// Hide popup when selection changes
+document.addEventListener('selectionchange', () => {
+  const selection = window.getSelection();
+  if (!selection || !selection.toString().trim()) {
+    hideSelectionPopup();
+  }
+});
+
+// Initialize selection popup
+createSelectionPopup(); 

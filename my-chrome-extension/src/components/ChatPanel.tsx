@@ -6,13 +6,15 @@ interface Message {
   text: string;
   isUser: boolean;
   timestamp: Date;
+  quotedText?: string;
 }
 
 interface ChatPanelProps {
   onClose?: () => void;
+  initialInputValue?: string;
 }
 
-export default function ChatPanel({ onClose }: ChatPanelProps) {
+export default function ChatPanel({ onClose, initialInputValue }: ChatPanelProps) {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 'ai-placeholder',
@@ -22,6 +24,7 @@ export default function ChatPanel({ onClose }: ChatPanelProps) {
     }
   ]);
   const [inputValue, setInputValue] = useState('');
+  const [quotedText, setQuotedText] = useState(initialInputValue || '');
 
   const handleSendMessage = () => {
     if (inputValue.trim()) {
@@ -29,10 +32,16 @@ export default function ChatPanel({ onClose }: ChatPanelProps) {
         id: Date.now().toString(),
         text: inputValue,
         isUser: true,
-        timestamp: new Date()
+        timestamp: new Date(),
+        quotedText: quotedText || undefined
       };
       setMessages(prev => [...prev, newMessage]);
       setInputValue('');
+      
+      // Clear the quoted text from input area after sending
+      if (quotedText) {
+        setQuotedText('');
+      }
     }
   };
 
@@ -63,6 +72,12 @@ export default function ChatPanel({ onClose }: ChatPanelProps) {
             className={`message ${message.isUser ? 'user-message' : 'ai-message'}`}
           >
             <div className="message-content">
+              {message.quotedText && (
+                <div className="message-quoted-text">
+                  <div className="message-quote-line"></div>
+                  <span className="message-quote-content">{message.quotedText}</span>
+                </div>
+              )}
               {message.text}
             </div>
             <div className="message-timestamp">
@@ -74,23 +89,31 @@ export default function ChatPanel({ onClose }: ChatPanelProps) {
       
       <div className="chat-input-container">
         <div className="input-wrapper">
-          <textarea
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            onKeyPress={handleKeyPress}
-            placeholder="Ask anything..."
-            className="chat-input"
-            rows={1}
-          />
-          <button
-            onClick={handleSendMessage}
-            className="send-button"
-            disabled={!inputValue.trim()}
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <polygon points="5,3 19,12 5,21"></polygon>
-            </svg>
-          </button>
+          {quotedText && (
+            <div className="quoted-text">
+              <div className="quote-line"></div>
+              <span className="quote-content">{quotedText}</span>
+            </div>
+          )}
+          <div className="input-row">
+            <textarea
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              onKeyPress={handleKeyPress}
+              placeholder={quotedText ? "Ask about the quoted text..." : "Ask anything..."}
+              className="chat-input"
+              rows={1}
+            />
+            <button
+              onClick={handleSendMessage}
+              className="send-button"
+              disabled={!inputValue.trim()}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polygon points="5,3 19,12 5,21"></polygon>
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
     </div>
