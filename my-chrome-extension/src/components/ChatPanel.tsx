@@ -45,7 +45,7 @@ export default function ChatPanel({ onClose }: ChatPanelProps) {
   return (
     <div className="chat-panel">
       <div className="chat-header">
-        <h3>Chat Assistant</h3>
+        <h3>Focus Fox</h3>
         <button className="close-btn" onClick={handleClose}>×</button>
       </div>
       

@@ -1,6 +1,10 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-import { viteStaticCopy } from 'vite-plugin-static-copy';
+import { viteStaticCopy } from 'vite-plugin-static-copy'
+import { resolve, dirname } from 'path'
+import { fileURLToPath } from 'url'
+
+const __dirname = dirname(fileURLToPath(import.meta.url))
 
 export default defineConfig({
   plugins: [
@@ -8,18 +12,29 @@ export default defineConfig({
     viteStaticCopy({
       targets: [
         {
-          src: 'public/manifest.json',
-          dest: '.',
+          src: 'src/components/ChatPanel.css',
+          dest: 'src/components',
+        },
+        {
+          src: 'src/App.css',
+          dest: 'src',
         }
-      ],
+      ]
     }),
+    viteStaticCopy({
+      targets: [
+        {
+          src: 'public/manifest.json',
+          dest: '.'
+        }
+      ]
+    })
   ],
   build: {
-    outDir: 'build',
     rollupOptions: {
       input: {
-        main: './index.html',
-      },
-    },
-  },
-});
+        main: resolve(__dirname, 'index.html')
+      }
+    }
+  }
+})

@@ -23,8 +23,8 @@
 
 .chat-header h3 {
   margin: 0;
-  color: #cccccc;
-  font-size: 14px;
+  color: #ff5c1a;
+  font-size: 18px;
   font-weight: 600;
 }
 
@@ -128,7 +128,7 @@
 }
 
 .input-wrapper:focus-within {
-  border-color: #8b5cf6;
+  border-color: #ff5c1a;
 }
 
 .chat-input {
@@ -150,7 +150,7 @@
 }
 
 .send-button {
-  background: #8b5cf6;
+  background: #ff5c1a;
   border: none;
   border-radius: 50%;
   color: white;
@@ -166,7 +166,7 @@
 }
 
 .send-button:hover:not(:disabled) {
-  background: #7c3aed;
+  background: #ff7a3a;
 }
 
 .send-button:disabled {
@@ -178,6 +178,35 @@
 .send-button svg {
   width: 14px;
   height: 14px;
+}
+
+.chat-toggle-btn {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: #ff5c1a;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s ease;
+  z-index: 2147483647;
+}
+
+.chat-toggle-btn:hover {
+  background: #ff7a3a;
+  transform: scale(1.05);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+}
+
+.chat-toggle-btn:active {
+  transform: scale(0.95);
 }
 
 /* Responsive design */
