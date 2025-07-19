@@ -29,35 +29,41 @@ export class Generate {
     if (!systemInstructionContent) {
       return c.json({ error: "System instruction not found" }, 404);
     }
-    const contentsList = await Promise.all(contents.map(async (content) => {
-      const contentData = await this.mongoClient.load<Content>(content);
-      if (!contentData) {
-        throw new Error(`Content with ID ${content} not found`);
-      }
-      return contentData;
-    }));
-    const generator = await this.geminiClient.generateText(systemInstructionContent, contentsList, search);
-
-    // Process the stream
-    const streamer = async (streamObj: SSEStreamingApi) => {
-      for await (const chunk of generator) {
-        if (!chunk.text) {
-          continue;
+    await this.mongoClient.connect(c.env.MONGO_CONN_STRING);
+    try {
+      const contentsList = await Promise.all(contents.map(async (content) => {
+        const contentData = await this.mongoClient.load<Content>(content);
+        if (!contentData) {
+          throw new Error(`Content with ID ${content} not found`);
         }
-        // Write to the stream
-        await streamObj.writeSSE({
-          data: chunk.text,
-          event: "message",
-        });
+        return contentData;
+      }));
+      const generator = await this.geminiClient.generateText(systemInstructionContent, contentsList, search);
+
+      // Process the stream
+      const streamer = async (streamObj: SSEStreamingApi) => {
+        for await (const chunk of generator) {
+          if (!chunk.text) {
+            continue;
+          }
+          // Write to the stream
+          await streamObj.writeSSE({
+            data: chunk.text,
+            event: "message",
+          });
+        }
       }
-    }
-    return streamSSE(c, streamer, async (e, stream) => {
-      console.error("Error in streaming:", e);
-      await stream.writeSSE({
-        data: JSON.stringify(e),
-        event: "error",
+      return streamSSE(c, streamer, async (e, stream) => {
+        console.error("Error in streaming:", e);
+        await stream.writeSSE({
+          data: JSON.stringify(e),
+          event: "error",
+        });
       });
-    });
+    }
+    finally {
+      await this.mongoClient.disconnect();
+    }
   }
 
   async options(c: Context): Promise<Response> {
