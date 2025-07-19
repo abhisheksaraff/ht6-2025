@@ -1,0 +1,37 @@
+{
+  "manifest_version": 3,
+  "name": "Chat Assistant Extension",
+  "version": "1.0.0",
+  "description": "A chat assistant that appears on any webpage",
+  "permissions": [
+    "activeTab"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"]
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["index.html", "assets/*", "fox.png"],
+      "matches": ["<all_urls>"]
+    }
+  ],
+  "action": {
+    "default_popup": "index.html"
+  },
+  "permissions": [],
+  "web_accessible_resources": [
+    {
+      "resources": ["assets/fox-*.png"],
+      "matches": ["<all_urls>"]
+    }
+  ],
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["contentScript.js"]
+    }
+  ]
+}
