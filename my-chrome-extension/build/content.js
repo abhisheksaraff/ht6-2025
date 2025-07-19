@@ -6,7 +6,7 @@ function createChatPanel() {
   chatContainer.innerHTML = `
     <div id="chat-panel" class="chat-panel" style="display: none;">
       <div class="chat-header">
-        <h3 class="chat-title">FocusFox</h3>
+        <h3 class="chat-title">Focus Fox</h3>
         <div class="header-icons">
           <button class="menu-btn">⋯</button>
           <button class="close-btn" id="chat-close-btn">×</button>
@@ -66,21 +66,46 @@ function createChatPanel() {
 
   let messages = [];
 
+  // Function to adjust page layout
+  function adjustPageLayout(isOpen) {
+    const body = document.body;
+    const html = document.documentElement;
+    const panelWidth = '400px';
+    
+    if (isOpen) {
+      // Set the page width to be viewport width minus panel width
+      body.style.width = `calc(100vw - ${panelWidth})`;
+      html.style.width = `calc(100vw - ${panelWidth})`;
+      
+      // Add class for additional styling
+      body.classList.add('chat-panel-open');
+      html.classList.add('chat-panel-open');
+    } else {
+      // Reset to full width
+      body.style.width = '';
+      html.style.width = '';
+      
+      // Remove class
+      body.classList.remove('chat-panel-open');
+      html.classList.remove('chat-panel-open');
+    }
+  }
+
   // Toggle chat panel
   toggleBtn.addEventListener('click', () => {
     if (chatPanel.style.display === 'none') {
       chatPanel.style.display = 'flex';
-      document.body.classList.add('chat-panel-open');
+      adjustPageLayout(true);
     } else {
       chatPanel.style.display = 'none';
-      document.body.classList.remove('chat-panel-open');
+      adjustPageLayout(false);
     }
   });
 
   // Close chat panel
   closeBtn.addEventListener('click', () => {
     chatPanel.style.display = 'none';
-    document.body.classList.remove('chat-panel-open');
+    adjustPageLayout(false);
   });
 
   // Send message
@@ -163,6 +188,7 @@ function injectCSS() {
       z-index: 1000;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       pointer-events: auto;
+      box-sizing: border-box;
     }
 
     .chat-header {
@@ -379,6 +405,20 @@ function injectCSS() {
       transform: scale(0.95);
     }
 
+    /* Page layout adjustments */
+    body.chat-panel-open,
+    html.chat-panel-open {
+      transition: width 0.3s ease;
+      box-sizing: border-box;
+    }
+
+    /* Ensure no default margins interfere */
+    body.chat-panel-open *,
+    html.chat-panel-open * {
+      box-sizing: border-box;
+    }
+
+    /* Responsive adjustments */
     @media (max-width: 768px) {
       .chat-panel {
         width: 100vw;
@@ -390,6 +430,11 @@ function injectCSS() {
         right: 15px;
         width: 45px;
         height: 45px;
+      }
+
+      body.chat-panel-open,
+      html.chat-panel-open {
+        width: 100vw !important;
       }
     }
 
