@@ -27,7 +27,7 @@ const post = async (c: Context<{ Bindings: Env }>) => {
     expirationTtl: ttl,
   });
 
-  return c.json({ id, ttl }, 200);
+  return c.json({ id, ttl }, 200, corsHeaders);
 };
 
 const put = async (c: Context<{ Bindings: Env }>) => {
@@ -50,7 +50,7 @@ const put = async (c: Context<{ Bindings: Env }>) => {
     });
   }
 
-  return c.json({ id, ttl }, 200);
+  return c.json({ id, ttl }, 200, corsHeaders);
 };
 
 const getContentFromRole = (content: string, role: string): ContentUnion => {
