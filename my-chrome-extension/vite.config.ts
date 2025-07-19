@@ -18,6 +18,10 @@ export default defineConfig({
         {
           src: 'src/App.css',
           dest: 'src',
+        },
+        {
+          src: 'src/assets/fox.png',
+          dest: 'src/assets'
         }
       ]
     }),
