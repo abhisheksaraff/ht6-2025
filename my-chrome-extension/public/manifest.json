@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Chat Assistant Extension",
+  "name": "Focus Fox",
   "version": "1.0.0",
-  "description": "A chat assistant that appears on any webpage",
+  "description": "AI-powered productivity assistant that appears on any webpage",
   "permissions": [
     "activeTab"
   ],
@@ -19,6 +19,6 @@
     }
   ],
   "action": {
-    "default_title": "Chat Assistant"
+    "default_title": "Focus Fox"
   }
 }

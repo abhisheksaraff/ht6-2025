@@ -6,7 +6,7 @@ function createChatPanel() {
   chatContainer.innerHTML = `
     <div id="chat-panel" class="chat-panel" style="display: none;">
       <div class="chat-header">
-        <h3 class="chat-title">Focus Fox</h3>
+        <h3 class="chat-title">Focus <span class="fox-text">Fox</span></h3>
         <div class="header-icons">
           <button class="menu-btn">⋯</button>
           <button class="close-btn" id="chat-close-btn">×</button>
@@ -28,12 +28,12 @@ function createChatPanel() {
       
       <div class="chat-input-container">
         <div class="input-wrapper">
-          <textarea
+          <div
             id="chat-input"
-            placeholder="Ask anything..."
             class="chat-input"
-            rows="1"
-          ></textarea>
+            contenteditable="true"
+            data-placeholder="Ask anything..."
+          ></div>
           <button
             id="chat-send-btn"
             class="send-button"
@@ -47,14 +47,35 @@ function createChatPanel() {
     </div>
 
     <button id="chat-toggle-btn" class="chat-toggle-btn">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
       </svg>
     </button>
   `;
 
+  // Create selection button separately (outside the container with pointer-events: none)
+  const selectionButton = document.createElement('button');
+  selectionButton.id = 'selection-button';
+  selectionButton.className = 'selection-button';
+  selectionButton.style.display = 'none';
+  selectionButton.style.position = 'fixed';
+  selectionButton.style.zIndex = '2147483646';
+  selectionButton.style.backgroundColor = '#ff6b35';
+  selectionButton.style.color = 'white';
+  selectionButton.style.border = 'none';
+  selectionButton.style.borderRadius = '6px';
+  selectionButton.style.padding = '8px 16px';
+  selectionButton.style.fontSize = '12px';
+  selectionButton.style.fontWeight = '600';
+  selectionButton.style.cursor = 'pointer';
+  selectionButton.style.transition = 'background-color 0.2s';
+  selectionButton.style.whiteSpace = 'nowrap';
+  selectionButton.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.3)';
+  selectionButton.textContent = 'Ask Focus Fox a question';
+
   // Add to page
   document.body.appendChild(chatContainer);
+  document.body.appendChild(selectionButton);
 
   // Get elements
   const chatPanel = document.getElementById('chat-panel');
@@ -63,8 +84,10 @@ function createChatPanel() {
   const chatInput = document.getElementById('chat-input');
   const sendBtn = document.getElementById('chat-send-btn');
   const messagesContainer = document.getElementById('chat-messages');
+  const selectionBtn = document.getElementById('selection-button');
 
   let messages = [];
+  let selectedText = '';
 
   // Function to adjust page layout
   function adjustPageLayout(isOpen) {
@@ -108,9 +131,92 @@ function createChatPanel() {
     adjustPageLayout(false);
   });
 
+  // Handle text selection
+  function handleTextSelection() {
+    const selection = window.getSelection();
+    const selectedText = selection.toString().trim();
+    
+    if (selectedText.length > 0) {
+      // Store the selected text
+      window.selectedTextForFocusFox = selectedText;
+      
+      // Get selection coordinates
+      const range = selection.getRangeAt(0);
+      const rect = range.getBoundingClientRect();
+      
+      // Position the button exactly where the highlight ends (10px down, 10px left from that point)
+      selectionButton.style.left = `${rect.right - 10}px`;
+      selectionButton.style.top = `${rect.bottom + 10}px`;
+      selectionButton.style.display = 'block';
+      
+      console.log('Button shown at:', selectionButton.style.left, selectionButton.style.top);
+      console.log('Button element:', selectionButton);
+    } else {
+      // Only hide button if there's no stored text and no selection
+      if (!window.selectedTextForFocusFox) {
+        selectionButton.style.display = 'none';
+      }
+    }
+  }
+
+  // Handle selection button click
+  selectionBtn.addEventListener('click', () => {
+    const selectedText = window.selectedTextForFocusFox || '';
+    
+    if (selectedText) {
+      // Open the chat panel
+      chatPanel.style.display = 'flex';
+      adjustPageLayout(true);
+      
+      // Put the selected text in the chat input with white left border, followed by two line breaks
+      chatInput.innerHTML = `<div class="selected-text-highlight">${selectedText}</div><br><br>`;
+      
+      // Clear selection and hide button
+      window.getSelection().removeAllRanges();
+      selectionButton.style.display = 'none';
+      window.selectedTextForFocusFox = '';
+      
+      // Focus the chat input for the user to type their question
+      setTimeout(() => {
+        chatInput.focus();
+        // Position cursor at the end
+        const range = document.createRange();
+        const sel = window.getSelection();
+        range.selectNodeContents(chatInput);
+        range.collapse(false);
+        sel.removeAllRanges();
+        sel.addRange(range);
+      }, 100);
+    }
+  });
+
+  // Listen for text selection events - trigger on mouseup for immediate response
+  document.addEventListener('mouseup', handleTextSelection);
+  document.addEventListener('keyup', handleTextSelection);
+
+  // Prevent selection clearing when clicking on button
+  selectionButton.addEventListener('mousedown', (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+  });
+
+  // Hide button when clicking outside (but not when clicking on the button itself)
+  document.addEventListener('mousedown', (e) => {
+    // Check if the click is on the button or its children
+    const isClickOnButton = selectionButton.contains(e.target) || 
+                           e.target.closest('#selection-button') ||
+                           e.target.closest('.selection-button');
+    
+    if (!isClickOnButton) {
+      // Only hide if clicking outside and not on the button
+      selectionButton.style.display = 'none';
+      window.selectedTextForFocusFox = '';
+    }
+  });
+
   // Send message
   function sendMessage() {
-    const text = chatInput.value.trim();
+    const text = chatInput.innerHTML.trim();
     if (text) {
       const message = {
         id: Date.now().toString(),
@@ -121,7 +227,7 @@ function createChatPanel() {
       
       messages.push(message);
       displayMessage(message);
-      chatInput.value = '';
+      chatInput.innerHTML = '';
       sendBtn.disabled = true;
     }
   }
@@ -154,7 +260,7 @@ function createChatPanel() {
 
   // Enable/disable send button based on input
   chatInput.addEventListener('input', () => {
-    sendBtn.disabled = !chatInput.value.trim();
+    sendBtn.disabled = !chatInput.innerHTML.trim();
   });
 
   // Initialize send button as disabled
@@ -203,8 +309,16 @@ function injectCSS() {
     .chat-title {
       margin: 0;
       color: #ff6b35;
-      font-size: 16px;
+      font-size: 18px;
       font-weight: 600;
+      user-select: none;
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+    }
+
+    .fox-text {
+      color: #FF4625;
     }
 
     .header-icons {
@@ -300,9 +414,70 @@ function injectCSS() {
     }
 
     .ai-message .message-content {
-      background: #ff6b35;
-      color: white;
+      background: #3c3c3c;
+      color: #cccccc;
       border-bottom-left-radius: 4px;
+      max-width: none;
+      width: 100%;
+    }
+
+    /* Specialized styling for highlighted text in messages */
+    .message-content strong {
+      font-weight: 600;
+      color: #ff6b35;
+    }
+
+    .user-message .message-content strong {
+      color: #ffffff;
+      font-weight: 700;
+    }
+
+    .message-content code {
+      background: #2d2d30;
+      padding: 2px 4px;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+    }
+
+    .user-message .message-content code {
+      background: rgba(255, 255, 255, 0.1);
+      color: #ffffff;
+    }
+
+    .message-content pre {
+      background: #2d2d30;
+      padding: 12px;
+      border-radius: 8px;
+      overflow-x: auto;
+      margin: 8px 0;
+      border: 1px solid #555;
+      border-left: 3px solid #ffffff;
+      position: relative;
+    }
+
+    .user-message .message-content pre {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-left: 3px solid #ffffff;
+    }
+
+    .message-content pre code {
+      background: transparent;
+      padding: 0;
+      border-radius: 0;
+    }
+
+    /* Selected text highlight - only white left border */
+    .selected-text-highlight {
+      border-left: 3px solid #ffffff;
+      padding-left: 12px;
+      margin: 8px 0;
+      background: transparent;
+      color: inherit;
+      font-family: inherit;
+      font-size: inherit;
+      line-height: inherit;
     }
 
     .chat-input-container {
@@ -334,21 +509,24 @@ function injectCSS() {
       color: #cccccc;
       font-size: 14px;
       line-height: 1.4;
-      resize: none;
       max-height: 120px;
       min-height: 20px;
       font-family: inherit;
+      overflow-y: auto;
+      word-wrap: break-word;
     }
 
-    .chat-input::placeholder {
+    .chat-input:empty:before {
+      content: attr(data-placeholder);
       color: #888;
+      pointer-events: none;
     }
 
     .send-button {
       background: #ff6b35;
       border: none;
       border-radius: 50%;
-      color: white;
+      color: #cccccc;
       cursor: pointer;
       padding: 8px;
       display: flex;
@@ -379,12 +557,12 @@ function injectCSS() {
       position: fixed;
       bottom: 20px;
       right: 20px;
-      width: 50px;
-      height: 50px;
+      width: 60px;
+      height: 60px;
       border-radius: 50%;
       background: #ff6b35;
       border: none;
-      color: #cccccc;
+      color: white;
       cursor: pointer;
       display: flex;
       align-items: center;
@@ -393,6 +571,10 @@ function injectCSS() {
       transition: all 0.2s ease;
       z-index: 999;
       pointer-events: auto;
+      user-select: none;
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
     }
 
     .chat-toggle-btn:hover {
@@ -403,6 +585,10 @@ function injectCSS() {
 
     .chat-toggle-btn:active {
       transform: scale(0.95);
+    }
+
+    .selection-button:hover {
+      background: #e55a2b;
     }
 
     /* Page layout adjustments */
@@ -428,8 +614,8 @@ function injectCSS() {
       .chat-toggle-btn {
         bottom: 15px;
         right: 15px;
-        width: 45px;
-        height: 45px;
+        width: 55px;
+        height: 55px;
       }
 
       body.chat-panel-open,
@@ -453,6 +639,7 @@ function injectCSS() {
       }
     }
   `;
+
   document.head.appendChild(style);
 }
 
