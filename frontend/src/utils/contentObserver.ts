@@ -70,28 +70,37 @@ export class ContentObserver {
   }
 
   private async checkContentChange() {
+    console.log('🔍 Checking for content changes...');
     try {
       const content = extractPageContent();
-      if (!content) return;
+      if (!content) {
+        console.log('❌ No content extracted, skipping...');
+        return;
+      }
 
       // Create a simple hash of the content to detect changes
       const contentHash = this.createContentHash(content.textContent);
+      console.log('🔢 Content hash:', contentHash);
+      console.log('🔢 Previous hash:', this.lastContentHash);
       
       if (contentHash !== this.lastContentHash) {
+        console.log('🔄 Content change detected!');
         this.lastContentHash = contentHash;
         const metadata = getPageMetadata();
         
-        console.log('Content change detected, sending to backend...');
+        console.log('📤 Sending updated content to backend...');
         
         try {
           const result = await sendContentToBackend(content, metadata);
           this.onContentChange(result);
         } catch (error) {
-          console.error('Failed to send content to backend:', error);
+          console.error('❌ Failed to send content to backend:', error);
         }
+      } else {
+        console.log('✅ No content changes detected');
       }
     } catch (error) {
-      console.error('Error checking content change:', error);
+      console.error('❌ Error checking content change:', error);
     }
   }
 

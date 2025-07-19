@@ -1,5 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import './ChatPanel.css';
+import { ContentObserver } from '../utils/contentObserver';
+import { extractPageContent, getPageMetadata, sendContentToBackend } from '../utils/readability';
 
 interface Message {
   id: string;
@@ -25,9 +27,81 @@ export default function ChatPanel({ onClose, initialInputValue }: ChatPanelProps
   ]);
   const [inputValue, setInputValue] = useState('');
   const [quotedText, setQuotedText] = useState(initialInputValue || '');
+  const [contentSent, setContentSent] = useState(false);
+  const contentObserverRef = useRef<ContentObserver | null>(null);
+  const currentUrlRef = useRef<string>('');
 
-  const handleSendMessage = () => {
+  // Initialize content observer and handle URL changes
+  useEffect(() => {
+    const currentUrl = window.location.href;
+    
+    // Reset content sent flag when URL changes
+    if (currentUrl !== currentUrlRef.current) {
+      currentUrlRef.current = currentUrl;
+      setContentSent(false);
+      
+      // Stop previous observer if it exists
+      if (contentObserverRef.current) {
+        contentObserverRef.current.stop();
+      }
+    }
+
+    // Initialize content observer
+    if (!contentObserverRef.current) {
+      contentObserverRef.current = new ContentObserver((content) => {
+        console.log('🔄 Content updated from observer:', content);
+        setContentSent(true);
+      });
+      contentObserverRef.current.start();
+      console.log('👀 Content observer started');
+    }
+
+    // Cleanup on unmount
+    return () => {
+      if (contentObserverRef.current) {
+        contentObserverRef.current.stop();
+      }
+    };
+  }, []);
+
+  // Function to send content to backend
+  const sendContentToBackendIfNeeded = async () => {
+    if (contentSent) {
+      console.log('Content already sent for this page, skipping...');
+      return;
+    }
+    
+    console.log('🦊 Focus Fox: Extracting page content...');
+    try {
+      const content = extractPageContent();
+      if (!content) {
+        console.warn('Could not extract page content');
+        return;
+      }
+
+      console.log('📄 Extracted content:', {
+        title: content.title,
+        textLength: content.textContent.length,
+        excerpt: content.excerpt.substring(0, 100) + '...'
+      });
+
+      const metadata = getPageMetadata();
+      console.log('🌐 Page metadata:', metadata);
+      
+      console.log('📤 Sending to backend...');
+      await sendContentToBackend(content, metadata);
+      setContentSent(true);
+      console.log('✅ Page content sent to backend successfully');
+    } catch (error) {
+      console.error('❌ Failed to send content to backend:', error);
+    }
+  };
+
+  const handleSendMessage = async () => {
     if (inputValue.trim()) {
+      // Send content to backend on first user message if not already sent
+      await sendContentToBackendIfNeeded();
+      
       const newMessage: Message = {
         id: Date.now().toString(),
         text: inputValue,

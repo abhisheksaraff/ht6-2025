@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Test Page for Focus Fox Extension</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+        line-height: 1.6;
+      }
+      .header {
+        background: #f0f0f0;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+      }
+      .content {
+        background: white;
+        padding: 20px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+      }
+      .sidebar {
+        background: #f9f9f9;
+        padding: 15px;
+        border-radius: 8px;
+        margin-top: 20px;
+      }
+      button {
+        background: #007bff;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 4px;
+        cursor: pointer;
+        margin: 5px;
+      }
+      button:hover {
+        background: #0056b3;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <h1>Test Page for Focus Fox Extension</h1>
+      <p>
+        This page is designed to test the content extraction functionality of
+        the Focus Fox browser extension.
+      </p>
+      <p>
+        <strong>Author:</strong> Test Author |
+        <strong>Published:</strong> 2025-07-19
+      </p>
+    </div>
+
+    <div class="content">
+      <h2>Main Article Content</h2>
+      <p>
+        This is the main content that should be extracted by the readability
+        parser. It contains meaningful information that would be useful for an
+        AI assistant to understand the context of the page.
+      </p>
+
+      <p>The extension should be able to:</p>
+      <ul>
+        <li>Extract the main content from this page</li>
+        <li>Identify the title and author information</li>
+        <li>Filter out navigation and sidebar content</li>
+        <li>Send the processed content to the backend</li>
+      </ul>
+
+      <h3>Technical Details</h3>
+      <p>
+        This test page includes various HTML elements to ensure the readability
+        parser works correctly:
+      </p>
+      <ul>
+        <li>Multiple headings (h1, h2, h3)</li>
+        <li>Paragraphs with meaningful content</li>
+        <li>Lists and structured content</li>
+        <li>Metadata in the header section</li>
+      </ul>
+
+      <p>
+        The content extraction should focus on the main article content while
+        ignoring navigation, ads, and other non-essential elements.
+      </p>
+    </div>
+
+    <div class="sidebar">
+      <h3>Sidebar Content (Should be ignored)</h3>
+      <p>
+        This sidebar content should not be included in the main content
+        extraction. It contains navigation links and other secondary
+        information.
+      </p>
+      <ul>
+        <li><a href="#">Related Articles</a></li>
+        <li><a href="#">Popular Posts</a></li>
+        <li><a href="#">Categories</a></li>
+      </ul>
+    </div>
+
+    <div style="margin-top: 20px">
+      <button onclick="addContent()">Add More Content</button>
+      <button onclick="changeTitle()">Change Title</button>
+      <button onclick="showConsole()">Show Console</button>
+    </div>
+
+    <script>
+      function addContent() {
+        const content = document.querySelector(".content");
+        const newParagraph = document.createElement("p");
+        newParagraph.textContent =
+          "This is dynamically added content to test the content observer functionality. The extension should detect this change and send updated content to the backend.";
+        content.appendChild(newParagraph);
+        console.log("🔄 Added new content to test observer");
+      }
+
+      function changeTitle() {
+        const title = document.querySelector("h1");
+        title.textContent =
+          "Updated Test Page Title - " + new Date().toLocaleTimeString();
+        console.log("🔄 Changed page title to test observer");
+      }
+
+      function showConsole() {
+        console.log("🔧 Test page loaded successfully");
+        console.log("📄 Current page title:", document.title);
+        console.log("🌐 Current URL:", window.location.href);
+        console.log("📋 DOM ready for extension testing");
+      }
+
+      // Show console info on page load
+      window.addEventListener("load", showConsole);
+    </script>
+  </body>
+</html>
