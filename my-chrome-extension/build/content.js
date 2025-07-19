@@ -6,11 +6,24 @@ function createChatPanel() {
   chatContainer.innerHTML = `
     <div id="chat-panel" class="chat-panel" style="display: none;">
       <div class="chat-header">
-        <h3>Chat Assistant</h3>
-        <button class="close-btn" id="chat-close-btn">×</button>
+        <h3 class="chat-title">FocusFox</h3>
+        <div class="header-icons">
+          <button class="menu-btn">⋯</button>
+          <button class="close-btn" id="chat-close-btn">×</button>
+        </div>
       </div>
       
       <div class="chat-messages" id="chat-messages">
+        <div class="message ai-message">
+          <div class="message-content">
+            Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris.
+          </div>
+        </div>
+        <div class="message ai-message">
+          <div class="message-content">
+            Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+          </div>
+        </div>
       </div>
       
       <div class="chat-input-container">
@@ -93,17 +106,9 @@ function createChatPanel() {
     const messageDiv = document.createElement('div');
     messageDiv.className = `message ${message.isUser ? 'user-message' : 'ai-message'}`;
     
-    const timeString = message.timestamp.toLocaleTimeString([], { 
-      hour: '2-digit', 
-      minute: '2-digit' 
-    });
-    
     messageDiv.innerHTML = `
       <div class="message-content">
         ${message.text}
-      </div>
-      <div class="message-timestamp">
-        ${timeString}
       </div>
     `;
     
@@ -166,14 +171,36 @@ function injectCSS() {
       align-items: center;
       padding: 16px 20px;
       border-bottom: 1px solid #333;
-      background: #252526;
+      background: #1e1e1e;
     }
 
-    .chat-header h3 {
+    .chat-title {
       margin: 0;
-      color: #cccccc;
-      font-size: 14px;
+      color: #ff6b35;
+      font-size: 16px;
       font-weight: 600;
+    }
+
+    .header-icons {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .menu-btn {
+      background: none;
+      border: none;
+      color: #cccccc;
+      font-size: 18px;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 4px;
+      transition: background-color 0.2s;
+      font-weight: bold;
+    }
+
+    .menu-btn:hover {
+      background: #404040;
     }
 
     .close-btn {
@@ -241,34 +268,28 @@ function injectCSS() {
     }
 
     .user-message .message-content {
-      background: #8b5cf6;
+      background: #ff6b35;
       color: white;
       border-bottom-right-radius: 4px;
     }
 
     .ai-message .message-content {
-      background: #2d2d30;
-      color: #cccccc;
+      background: #ff6b35;
+      color: white;
       border-bottom-left-radius: 4px;
-    }
-
-    .message-timestamp {
-      font-size: 11px;
-      color: #888;
-      margin: 0 4px;
     }
 
     .chat-input-container {
       padding: 16px 20px;
       border-top: 1px solid #333;
-      background: #252526;
+      background: #1e1e1e;
     }
 
     .input-wrapper {
       display: flex;
       align-items: center;
       gap: 8px;
-      background: #3c3c3c;
+      background: #2d2d30;
       border: 1px solid #555;
       border-radius: 8px;
       padding: 8px 12px;
@@ -276,7 +297,7 @@ function injectCSS() {
     }
 
     .input-wrapper:focus-within {
-      border-color: #8b5cf6;
+      border-color: #ff6b35;
     }
 
     .chat-input {
@@ -298,7 +319,7 @@ function injectCSS() {
     }
 
     .send-button {
-      background: #8b5cf6;
+      background: #ff6b35;
       border: none;
       border-radius: 50%;
       color: white;
@@ -314,7 +335,7 @@ function injectCSS() {
     }
 
     .send-button:hover:not(:disabled) {
-      background: #7c3aed;
+      background: #e55a2b;
     }
 
     .send-button:disabled {
@@ -335,7 +356,7 @@ function injectCSS() {
       width: 50px;
       height: 50px;
       border-radius: 50%;
-      background: #8b5cf6;
+      background: #ff6b35;
       border: none;
       color: #cccccc;
       cursor: pointer;
@@ -349,7 +370,7 @@ function injectCSS() {
     }
 
     .chat-toggle-btn:hover {
-      background: #7c3aed;
+      background: #e55a2b;
       transform: scale(1.05);
       box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
     }
