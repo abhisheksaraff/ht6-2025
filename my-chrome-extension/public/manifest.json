@@ -1,10 +1,24 @@
 {
   "manifest_version": 3,
-  "name": "React Chrome Extension",
+  "name": "Chat Assistant Extension",
   "version": "1.0.0",
-  "description": "A simple React app as a Chrome extension",
+  "description": "A chat assistant that appears on any webpage",
+  "permissions": [
+    "activeTab"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"]
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["index.html", "assets/*", "fox.png"],
+      "matches": ["<all_urls>"]
+    }
+  ],
   "action": {
-    "default_popup": "index.html"
-  },
-  "permissions": []
+    "default_title": "Chat Assistant"
+  }
 }

@@ -5,6 +5,40 @@
   text-align: center;
 }
 
+.main-content {
+  /* Adjust width when chat panel is open */
+  transition: max-width 0.3s ease;
+}
+
+.chat-toggle-btn {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: #8b5cf6;
+  border: none;
+  color: #cccccc;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s ease;
+  z-index: 999;
+}
+
+.chat-toggle-btn:hover {
+  background: #7c3aed;
+  transform: scale(1.05);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+}
+
+.chat-toggle-btn:active {
+  transform: scale(0.95);
+}
+
 .logo {
   height: 6em;
   padding: 1.5em;
@@ -39,4 +73,25 @@
 
 .read-the-docs {
   color: #888;
+}
+
+/* Adjust layout when chat panel is open */
+body.chat-panel-open .main-content {
+  max-width: calc(1280px - 400px);
+  margin-right: 400px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  body.chat-panel-open .main-content {
+    max-width: 100%;
+    margin-right: 0;
+  }
+  
+  .chat-toggle-btn {
+    bottom: 15px;
+    right: 15px;
+    width: 45px;
+    height: 45px;
+  }
 }
