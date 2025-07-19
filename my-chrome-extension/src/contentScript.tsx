@@ -65,6 +65,8 @@ container.style.zIndex = '2147483648'; // below button
 container.style.display = 'none'; // Hide by default
 container.style.flexDirection = 'column';
 container.style.boxShadow = '0 0 24px 0 rgba(0,0,0,0.25)';
+container.style.background = '#fff'; // Ensure panel has a background
+container.style.transition = 'right 0.2s cubic-bezier(.4,0,.2,1)';
 
 let root: ReactDOMRoot | null = null;
 
@@ -74,6 +76,25 @@ let dragOffsetX = 0;
 let dragOffsetY = 0;
 let dragMoved = false;
 let panelOpen = false;
+
+const PANEL_WIDTH = 400;
+function setBodyMargin(open: boolean) {
+  if (open) {
+    document.body.style.transition = 'margin-right 0.2s cubic-bezier(.4,0,.2,1)';
+    document.body.style.marginRight = PANEL_WIDTH + 'px';
+  } else {
+    document.body.style.transition = 'margin-right 0.2s cubic-bezier(.4,0,.2,1)';
+    document.body.style.marginRight = '';
+  }
+}
+
+function closePanel() {
+  root && root.render(null);
+  container!.style.display = 'none';
+  panelOpen = false;
+  setBodyMargin(false);
+  document.body.appendChild(btn);
+}
 
 // Start dragging the button
 btn.addEventListener('mousedown', (e) => {
@@ -136,28 +157,19 @@ btn.addEventListener('click', () => {
   setTimeout(() => btn.classList.remove('fox-btn-animate'), 180);
 
   // Toggle the chat panel
-  panelOpen = !panelOpen;
-  if (panelOpen) {
+  if (!panelOpen) {
+    panelOpen = true;
+    setBodyMargin(true);
     container!.style.display = 'flex';
     if (!root) {
       root = createRoot(container!);
     }
-    // Render the chat panel. The ChatPanel component handles user input and can send messages to the backend.
     root.render(
-      <ChatPanel onClose={() => {
-        // When the panel is closed (via the × button), hide the panel and update state
-        root!.render(null);
-        container!.style.display = 'none';
-        panelOpen = false;
-        document.body.appendChild(btn); // ensure button is last
-      }} />
+      <ChatPanel onClose={closePanel} />
     );
     document.body.appendChild(btn); // ensure button is last
   } else {
-    // Hide the panel if open
-    root!.render(null);
-    container!.style.display = 'none';
-    document.body.appendChild(btn); // ensure button is last
+    closePanel();
   }
 });
 
@@ -167,6 +179,21 @@ btn.addEventListener('mouseenter', () => {
 });
 btn.addEventListener('mouseleave', () => {
   btn.style.background = '#ff5c1a';
+});
+
+// --- ESC Key Handling ---
+document.addEventListener('keydown', (e) => {
+  // ESC closes panel
+  if (e.key === 'Escape') {
+    if (panelOpen) {
+      closePanel();
+    }
+  }
+  // Cmd+K (Mac) or Ctrl+K (Win/Linux) toggles panel
+  if ((e.key === 'k' || e.key === 'K') && (e.metaKey || e.ctrlKey)) {
+    e.preventDefault();
+    btn.click();
+  }
 });
 
 // --- ChatPanel Component ---

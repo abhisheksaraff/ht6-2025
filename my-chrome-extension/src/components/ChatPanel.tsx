@@ -13,7 +13,14 @@ interface ChatPanelProps {
 }
 
 export default function ChatPanel({ onClose }: ChatPanelProps) {
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      id: 'ai-placeholder',
+      text: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
+      isUser: false,
+      timestamp: new Date()
+    }
+  ]);
   const [inputValue, setInputValue] = useState('');
 
   const handleSendMessage = () => {
