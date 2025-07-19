@@ -90,13 +90,16 @@ function createChatPanel() {
   }
 
   // Toggle chat panel
-  toggleBtn.addEventListener('click', () => {
-    if (chatPanel.style.display === 'none') {
-      chatPanel.style.display = 'flex';
-      adjustPageLayout(true);
-    } else {
-      chatPanel.style.display = 'none';
-      adjustPageLayout(false);
+  toggleBtn.addEventListener('click', (e) => {
+    // Only toggle if we didn't drag
+    if (!hasDragged) {
+      if (chatPanel.style.display === 'none') {
+        chatPanel.style.display = 'flex';
+        adjustPageLayout(true);
+      } else {
+        chatPanel.style.display = 'none';
+        adjustPageLayout(false);
+      }
     }
   });
 
@@ -157,6 +160,64 @@ function createChatPanel() {
 
   // Initialize send button as disabled
   sendBtn.disabled = true;
+
+  // Drag functionality for toggle button
+  let isDragging = false;
+  let hasDragged = false;
+  let startX = 0;
+  let startY = 0;
+
+  // Mouse down event for drag start
+  toggleBtn.addEventListener('mousedown', (e) => {
+    if (e.target.closest('.fox-icon')) {
+      isDragging = true;
+      hasDragged = false;
+      startX = e.clientX;
+      startY = e.clientY;
+      toggleBtn.style.cursor = 'grabbing';
+      toggleBtn.style.transition = 'none'; // Remove transition during drag
+      e.preventDefault();
+    }
+  });
+
+  // Mouse move event for dragging
+  document.addEventListener('mousemove', (e) => {
+    if (isDragging) {
+      // Check if we've moved enough to consider it a drag
+      const deltaX = Math.abs(e.clientX - startX);
+      const deltaY = Math.abs(e.clientY - startY);
+      if (deltaX > 5 || deltaY > 5) {
+        hasDragged = true;
+      }
+      
+      // Center the button on the cursor
+      const newX = e.clientX - (toggleBtn.offsetWidth / 2);
+      const newY = e.clientY - (toggleBtn.offsetHeight / 2);
+      
+      // Keep button within viewport bounds
+      const maxX = window.innerWidth - toggleBtn.offsetWidth;
+      const maxY = window.innerHeight - toggleBtn.offsetHeight;
+      
+      toggleBtn.style.left = Math.max(0, Math.min(newX, maxX)) + 'px';
+      toggleBtn.style.top = Math.max(0, Math.min(newY, maxY)) + 'px';
+      toggleBtn.style.right = 'auto';
+      toggleBtn.style.bottom = 'auto';
+    }
+  });
+
+  // Mouse up event for drag end
+  document.addEventListener('mouseup', () => {
+    if (isDragging) {
+      isDragging = false;
+      toggleBtn.style.cursor = 'grab';
+      toggleBtn.style.transition = 'all 0.2s ease'; // Restore transition after drag
+      
+      // Reset drag state after a short delay to allow click event to process
+      setTimeout(() => {
+        hasDragged = false;
+      }, 10);
+    }
+  });
 }
 
 // Inject CSS directly
@@ -389,7 +450,7 @@ function injectCSS() {
       background: #ff6b35;
       border: none;
       color: #cccccc;
-      cursor: pointer;
+      cursor: grab;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -397,9 +458,14 @@ function injectCSS() {
       transition: all 0.2s ease;
       z-index: 999;
       pointer-events: auto;
+      user-select: none;
     }
 
-    .chat-toggle-btn:hover {
+    .chat-toggle-btn:active {
+      cursor: grabbing;
+    }
+
+    .chat-toggle-btn:hover:not(:active) {
       background: #e55a2b;
       transform: scale(1.05);
       box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
