@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { postContent, putContent, optionsContent } from "./contentController";
 
-const app = new Hono<{ Bindings: CloudflareBindings }>();
+const app = new Hono();
 
 app.post("/api/content", postContent);
 

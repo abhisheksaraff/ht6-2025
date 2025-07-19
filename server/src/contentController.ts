@@ -1,4 +1,8 @@
-import { UUID } from "mongodb";
+import { Context } from "hono";
+import { v7 } from "uuid";
+import { MongoClient } from "./mongo";
+
+import { MongoClient as MC } from "mongodb";
 
 // env.VARIABLE;
 // UUID v7
@@ -13,8 +17,8 @@ import { UUID } from "mongodb";
 //   id: "",
 //   ttl: ttl,
 // }
-const postContent = async (c) => {
-    console.log(c.env.MONGO_CONN_STRING);
+const postContent = async (c: Context) => {
+  const connString = (c.env.MONGO_CONN_STRING);
 };
 
 // UUID v7

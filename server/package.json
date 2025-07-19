@@ -9,6 +9,7 @@
 	"dependencies": {
 		"@google/genai": "^1.10.0",
 		"hono": "^4.8.5",
+		"masfana-mongodb-api-sdk": "^1.0.5",
 		"mongodb": "^6.17.0"
 	},
 	"devDependencies": {
