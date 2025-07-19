@@ -13,18 +13,18 @@ export default defineConfig({
     'process': '{}'
   },
   build: {
-    lib: {
-      entry: resolve(__dirname, 'src/contentScript.tsx'),
-      name: 'ContentScript',
-      formats: ['iife'],
-      fileName: () => 'contentScript.js',
-    },
-    outDir: 'dist',
     rollupOptions: {
+      input: {
+        contentScript: resolve(__dirname, 'src/contentScript.tsx'),
+      },
       output: {
         entryFileNames: 'contentScript.js',
+        format: 'iife',
+        inlineDynamicImports: true,
       },
+      external: [],
     },
+    outDir: 'dist',
     emptyOutDir: false,
   },
 }) 
