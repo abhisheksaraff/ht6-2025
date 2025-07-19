@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { UUID } from "mongodb";
+import { post, put, options } from "./contentController";
 
 const app = new Hono<{ Bindings: CloudflareBindings }>();
 // env.VARIABLE;
@@ -15,9 +15,7 @@ const app = new Hono<{ Bindings: CloudflareBindings }>();
 //   id: "",
 //   ttl: ttl,
 // }
-app.post("/api/content", (c) => {
-  return c.text("Hello Hono!");
-});
+app.post("/api/content", post);
 
 // UUID v7
 // reset ttl to = 10mins
@@ -31,13 +29,9 @@ app.post("/api/content", (c) => {
 //   id: "",
 //   ttl: ttl,
 // } res.status(200)
-app.put("/api/content", (c) => {
-  return c.text("Hello Hono!");
-});
+app.put("/api/content", put);
 
-app.options("/api/content", (c) => {
-  return c.text("Hello Hono!");
-});
+app.options("/api/content", options);
 
 app.post("/api/generate", (c) => {
   return c.text("Hello Hono!");
