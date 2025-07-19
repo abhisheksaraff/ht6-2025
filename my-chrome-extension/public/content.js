@@ -218,6 +218,31 @@ function createChatPanel() {
       }, 10);
     }
   });
+
+  // ESC key functionality
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      // If panel is open, close it
+      if (chatPanel.style.display !== 'none') {
+        chatPanel.style.display = 'none';
+        adjustPageLayout(false);
+      } else {
+        // If panel is closed and button is not in original position, reset it
+        const currentLeft = parseInt(toggleBtn.style.left) || 0;
+        const currentTop = parseInt(toggleBtn.style.top) || 0;
+        const originalRight = window.innerWidth - 70; // 20px from right edge
+        const originalBottom = window.innerHeight - 70; // 20px from bottom edge
+        
+        if (currentLeft !== 0 || currentTop !== 0) {
+          // Reset to original position (bottom right)
+          toggleBtn.style.left = '';
+          toggleBtn.style.top = '';
+          toggleBtn.style.right = '20px';
+          toggleBtn.style.bottom = '20px';
+        }
+      }
+    }
+  });
 }
 
 // Inject CSS directly
