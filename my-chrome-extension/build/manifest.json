@@ -14,7 +14,7 @@
   ],
   "web_accessible_resources": [
     {
-      "resources": ["index.html", "assets/*"],
+      "resources": ["index.html", "assets/*", "fox.png"],
       "matches": ["<all_urls>"]
     }
   ],

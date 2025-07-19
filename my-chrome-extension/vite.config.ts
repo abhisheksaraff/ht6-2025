@@ -18,6 +18,10 @@ export default defineConfig({
         {
           src: 'public/content.css',
           dest: '.',
+        },
+        {
+          src: 'public/fox.png',
+          dest: '.',
         }
       ],
     }),

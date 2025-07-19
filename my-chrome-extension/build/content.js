@@ -47,9 +47,7 @@ function createChatPanel() {
     </div>
 
     <button id="chat-toggle-btn" class="chat-toggle-btn">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-      </svg>
+      <img src="${chrome.runtime.getURL('fox.png')}" alt="Focus Fox" class="fox-icon">
     </button>
   `;
 
@@ -373,6 +371,12 @@ function injectCSS() {
     .send-button svg {
       width: 14px;
       height: 14px;
+    }
+
+    .fox-icon {
+      width: 40px;
+      height: 40px;
+      object-fit: contain;
     }
 
     .chat-toggle-btn {
