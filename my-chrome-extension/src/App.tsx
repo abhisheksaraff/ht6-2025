@@ -1,30 +1,42 @@
 import { useState, useEffect } from 'react'
 import './App.css'
-import ChatPanel from './components/ChatPanel'
+// Removed: import ChatPanel from './components/ChatPanel'
 
 function App() {
-  const [showChatPanel, setShowChatPanel] = useState(true) // Start with panel open
+  const [count, setCount] = useState(0)
+  // Removed: showChatPanel and setShowChatPanel
 
   // Add/remove body class when chat panel is toggled
   useEffect(() => {
-    if (showChatPanel) {
-      document.body.classList.add('chat-panel-open');
-    } else {
-      document.body.classList.remove('chat-panel-open');
-    }
-
-    // Cleanup on unmount
-    return () => {
-      document.body.classList.remove('chat-panel-open');
-    };
-  }, [showChatPanel]);
+    // Removed: chat-panel-open logic
+    return () => {};
+  }, []);
 
   return (
     <>
-      {/* Chat Panel - Always visible as overlay */}
-      {showChatPanel && (
-        <ChatPanel onClose={() => setShowChatPanel(false)} />
-      )}
+      <div className="main-content">
+        <div>
+          <a href="https://vite.dev" target="_blank">
+            <img src={viteLogo} className="logo" alt="Vite logo" />
+          </a>
+          <a href="https://react.dev" target="_blank">
+            <img src={reactLogo} className="logo react" alt="React logo" />
+          </a>
+        </div>
+        <h1>Vite + React</h1>
+        <div className="card">
+          <button onClick={() => setCount((count) => count + 1)}>
+            count is {count}
+          </button>
+          <p>
+            Edit <code>src/App.tsx</code> and save to test HMR
+          </p>
+        </div>
+        <p className="read-the-docs">
+          Click on the Vite and React logos to learn more
+        </p>
+      </div>
+      {/* Removed: Floating chat button and ChatPanel, now handled by content script */}
     </>
   )
 }

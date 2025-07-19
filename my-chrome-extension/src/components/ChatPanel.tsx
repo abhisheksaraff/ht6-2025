@@ -6,15 +6,25 @@ interface Message {
   text: string;
   isUser: boolean;
   timestamp: Date;
+  quotedText?: string;
 }
 
 interface ChatPanelProps {
   onClose?: () => void;
+  initialInputValue?: string;
 }
 
-export default function ChatPanel({ onClose }: ChatPanelProps) {
-  const [messages, setMessages] = useState<Message[]>([]);
+export default function ChatPanel({ onClose, initialInputValue }: ChatPanelProps) {
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      id: 'ai-placeholder',
+      text: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
+      isUser: false,
+      timestamp: new Date()
+    }
+  ]);
   const [inputValue, setInputValue] = useState('');
+  const [quotedText, setQuotedText] = useState(initialInputValue || '');
 
   const handleSendMessage = () => {
     if (inputValue.trim()) {
@@ -22,10 +32,16 @@ export default function ChatPanel({ onClose }: ChatPanelProps) {
         id: Date.now().toString(),
         text: inputValue,
         isUser: true,
-        timestamp: new Date()
+        timestamp: new Date(),
+        quotedText: quotedText || undefined
       };
       setMessages(prev => [...prev, newMessage]);
       setInputValue('');
+      
+      // Clear the quoted text from input area after sending
+      if (quotedText) {
+        setQuotedText('');
+      }
     }
   };
 
@@ -46,57 +62,58 @@ export default function ChatPanel({ onClose }: ChatPanelProps) {
     <div className="chat-panel">
       <div className="chat-header">
         <h3>Focus Fox</h3>
-        <div className="header-actions">
-          <button className="header-btn">⋯</button>
-          <button className="close-btn" onClick={handleClose}>×</button>
-        </div>
+        <button className="close-btn" onClick={handleClose}>×</button>
       </div>
       
-      <div className="chat-content">
-        <div className="orange-text-box">
-          <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
-        </div>
-        
-        <div className="dark-text-box">
-          <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.</p>
-        </div>
-        
-        <div className="chat-messages">
-          {messages.map((message) => (
-            <div
-              key={message.id}
-              className={`message ${message.isUser ? 'user-message' : 'ai-message'}`}
-            >
-              <div className="message-content">
-                {message.text}
-              </div>
-              <div className="message-timestamp">
-                {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-              </div>
+      <div className="chat-messages">
+        {messages.map((message) => (
+          <div
+            key={message.id}
+            className={`message ${message.isUser ? 'user-message' : 'ai-message'}`}
+          >
+            <div className="message-content">
+              {message.quotedText && (
+                <div className="message-quoted-text">
+                  <div className="message-quote-line"></div>
+                  <span className="message-quote-content">{message.quotedText}</span>
+                </div>
+              )}
+              {message.text}
             </div>
-          ))}
-        </div>
+            <div className="message-timestamp">
+              {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            </div>
+          </div>
+        ))}
       </div>
       
       <div className="chat-input-container">
         <div className="input-wrapper">
-          <input
-            type="text"
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            onKeyPress={handleKeyPress}
-            placeholder="Ask anything..."
-            className="chat-input"
-          />
-          <button
-            onClick={handleSendMessage}
-            className="send-button"
-            disabled={!inputValue.trim()}
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <polygon points="5,3 19,12 5,21"></polygon>
-            </svg>
-          </button>
+          {quotedText && (
+            <div className="quoted-text">
+              <div className="quote-line"></div>
+              <span className="quote-content">{quotedText}</span>
+            </div>
+          )}
+          <div className="input-row">
+            <textarea
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              onKeyPress={handleKeyPress}
+              placeholder={quotedText ? "Ask about the quoted text..." : "Ask anything..."}
+              className="chat-input"
+              rows={1}
+            />
+            <button
+              onClick={handleSendMessage}
+              className="send-button"
+              disabled={!inputValue.trim()}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polygon points="5,3 19,12 5,21"></polygon>
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
     </div>
