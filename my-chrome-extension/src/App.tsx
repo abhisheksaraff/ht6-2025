@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import './App.css'
+import reactLogo from './assets/react.svg'
 // Removed: import ChatPanel from './components/ChatPanel'
 
 function App() {
@@ -16,9 +17,6 @@ function App() {
     <>
       <div className="main-content">
         <div>
-          <a href="https://vite.dev" target="_blank">
-            <img src={viteLogo} className="logo" alt="Vite logo" />
-          </a>
           <a href="https://react.dev" target="_blank">
             <img src={reactLogo} className="logo react" alt="React logo" />
           </a>
