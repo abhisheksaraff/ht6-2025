@@ -9,7 +9,10 @@ import { createRoot } from 'react-dom/client';
 import type { Root as ReactDOMRoot } from 'react-dom/client';
 import ChatPanel from './components/ChatPanel';
 import './App.css';
-import foxPng from './assets/fox.png';
+// @ts-ignore
+import foxPngUrl from './assets/fox.png?url';
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+declare const chrome: any;
 
 console.log('Content script running: attempting to render chat button');
 
@@ -17,7 +20,7 @@ console.log('Content script running: attempting to render chat button');
 const btn = document.createElement('button');
 btn.textContent = '';
 const foxImg = document.createElement('img');
-foxImg.src = foxPng;
+foxImg.src = chrome.runtime.getURL(foxPngUrl);
 foxImg.alt = 'Fox';
 foxImg.style.width = '36px';
 foxImg.style.height = '36px';

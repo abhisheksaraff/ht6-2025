@@ -7,6 +7,12 @@
     "default_popup": "index.html"
   },
   "permissions": [],
+  "web_accessible_resources": [
+    {
+      "resources": ["assets/fox-*.png"],
+      "matches": ["<all_urls>"]
+    }
+  ],
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
