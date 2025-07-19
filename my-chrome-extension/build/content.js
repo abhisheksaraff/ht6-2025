@@ -47,9 +47,7 @@ function createChatPanel() {
     </div>
 
     <button id="chat-toggle-btn" class="chat-toggle-btn">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-      </svg>
+      <img src="${chrome.runtime.getURL('fox.png')}" alt="Focus Fox" class="fox-icon">
     </button>
   `;
 
@@ -655,7 +653,7 @@ function injectCSS() {
       background: #ff6b35;
       border: none;
       color: #cccccc;
-      cursor: pointer;
+      cursor: grab;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -663,6 +661,11 @@ function injectCSS() {
       transition: all 0.2s ease;
       z-index: 999;
       pointer-events: auto;
+      user-select: none;
+    }
+
+    .chat-toggle-btn:active {
+      cursor: grabbing;
     }
 
     .chat-toggle-btn:hover:not(:active) {
