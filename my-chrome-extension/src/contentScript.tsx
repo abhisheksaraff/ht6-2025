@@ -121,7 +121,7 @@ animStyle.textContent = `
 document.head.appendChild(animStyle);
 
 // --- Button Click: Toggle Panel ---
-btn.addEventListener('click', (e) => {
+btn.addEventListener('click', () => {
   if (dragMoved) {
     dragMoved = false;
     return;

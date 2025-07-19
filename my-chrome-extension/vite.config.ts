@@ -37,8 +37,14 @@ export default defineConfig({
   build: {
     rollupOptions: {
       input: {
-        main: resolve(__dirname, 'index.html')
-      }
-    }
+        main: resolve(__dirname, 'index.html'),
+        contentScript: resolve(__dirname, 'src/contentScript.tsx'),
+      },
+      output: {
+        entryFileNames: '[name].js',
+      },
+    },
+    outDir: 'dist',
+    emptyOutDir: true,
   }
 })
