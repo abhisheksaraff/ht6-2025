@@ -45,35 +45,48 @@ export default function ChatPanel({ onClose }: ChatPanelProps) {
   return (
     <div className="chat-panel">
       <div className="chat-header">
-        <h3>Chat Assistant</h3>
-        <button className="close-btn" onClick={handleClose}>×</button>
+        <h3>Focus Fox</h3>
+        <div className="header-actions">
+          <button className="header-btn">⋯</button>
+          <button className="close-btn" onClick={handleClose}>×</button>
+        </div>
       </div>
       
-      <div className="chat-messages">
-        {messages.map((message) => (
-          <div
-            key={message.id}
-            className={`message ${message.isUser ? 'user-message' : 'ai-message'}`}
-          >
-            <div className="message-content">
-              {message.text}
+      <div className="chat-content">
+        <div className="orange-text-box">
+          <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
+        </div>
+        
+        <div className="dark-text-box">
+          <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.</p>
+        </div>
+        
+        <div className="chat-messages">
+          {messages.map((message) => (
+            <div
+              key={message.id}
+              className={`message ${message.isUser ? 'user-message' : 'ai-message'}`}
+            >
+              <div className="message-content">
+                {message.text}
+              </div>
+              <div className="message-timestamp">
+                {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </div>
             </div>
-            <div className="message-timestamp">
-              {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-            </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
       
       <div className="chat-input-container">
         <div className="input-wrapper">
-          <textarea
+          <input
+            type="text"
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyPress={handleKeyPress}
             placeholder="Ask anything..."
             className="chat-input"
-            rows={1}
           />
           <button
             onClick={handleSendMessage}
