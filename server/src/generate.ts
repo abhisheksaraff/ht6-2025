@@ -17,7 +17,7 @@ export class Generate {
   }
 
   async post(c: Context<{ Bindings: Env }>): Promise<Response> {
-    const { contents, search } = await c.req.json<{ systemInstruction: string; contents: string[]; search: boolean }>();
+    const { contents, search } = await c.req.json<{ contents: string[]; search: boolean }>();
     if (!contents) {
       return c.json({ error: "Invalid input" }, 400);
     }
@@ -33,7 +33,6 @@ export class Generate {
       return contentData;
     }));
     const generator = await this.geminiClient.generateText(contentsList[0], contentsList.slice(1), search);
-
     // Process the stream
     const streamer = async (streamObj: SSEStreamingApi) => {
       for await (const chunk of generator) {

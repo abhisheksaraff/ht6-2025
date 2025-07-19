@@ -23,11 +23,11 @@ const post = async (c: Context<{ Bindings: Env }>) => {
   const ttl = 10 * 60;
   const result = getContentFromRole(content, role);
 
-  await c.env.CONTENT.put(id, result.toString(), {
+  await c.env.CONTENT.put(id, JSON.stringify(result), {
     expirationTtl: ttl,
   });
 
-  return c.json({ id, ttl }, 200);
+  return c.json({ id, ttl }, 200, corsHeaders);
 };
 
 const put = async (c: Context<{ Bindings: Env }>) => {
@@ -45,12 +45,12 @@ const put = async (c: Context<{ Bindings: Env }>) => {
     await c.env.CONTENT.put(id, content, { expirationTtl: ttl });
   } else {
     const result = getContentFromRole(content, role);
-    await c.env.CONTENT.put(id, result.toString(), {
+    await c.env.CONTENT.put(id, JSON.stringify(result), {
       expirationTtl: ttl,
     });
   }
 
-  return c.json({ id, ttl }, 200);
+  return c.json({ id, ttl }, 200, corsHeaders);
 };
 
 const getContentFromRole = (content: string, role: string): ContentUnion => {
