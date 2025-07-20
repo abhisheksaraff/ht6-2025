@@ -1,10 +1,7 @@
-import { useRef } from 'react';
-import { Schedule } from '../schedule';
+import { useRef } from "react";
+import { Schedule, type ISchedule } from "../schedule";
 
-export function useSchedule() {
-  const scheduleRef = useRef<Schedule | null>(null);
-  if (!scheduleRef.current) {
-    scheduleRef.current = new Schedule();
-  }
-  return scheduleRef.current;
-} 
+export function useSchedule(): ISchedule {
+  const schedule = useRef(new Schedule()).current;
+  return schedule;
+}
