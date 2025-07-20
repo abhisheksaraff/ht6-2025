@@ -1,10 +1,7 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-import { viteStaticCopy } from 'vite-plugin-static-copy'
-import { resolve, dirname } from 'path'
-import { fileURLToPath } from 'url'
+import { viteStaticCopy } from 'vite-plugin-static-copy';
 
-const __dirname = dirname(fileURLToPath(import.meta.url))
 
 export default defineConfig({
   plugins: [
@@ -12,38 +9,26 @@ export default defineConfig({
     viteStaticCopy({
       targets: [
         {
-          src: 'src/components/ChatPanel.css',
-          dest: 'src/components',
-        },
-        {
-          src: 'src/App.css',
-          dest: 'src',
-        },
-        {
-          src: 'src/assets/fox.png',
-          dest: 'src/assets'
-        }
-      ]
-    }),
-    viteStaticCopy({
-      targets: [
-        {
           src: 'public/manifest.json',
-          dest: '.'
+          dest: '.',
+        },
+        {
+          src: 'public/content.js',
+          dest: '.',
+        },
+        {
+          src: 'public/content.css',
+          dest: '.',
         }
-      ]
-    })
+      ],
+    }),
   ],
   build: {
+    outDir: 'build',
     rollupOptions: {
       input: {
-        main: resolve(__dirname, 'index.html')
-      },
-      output: {
-        entryFileNames: '[name].js',
+        main: './index.html',
       },
     },
-    outDir: 'dist',
-    emptyOutDir: true,
-  }
-})
+  },
+});

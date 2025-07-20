@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { Spinner } from './Spinner';
 import './ChatPanel.css';
 
 interface Message {
@@ -6,7 +7,6 @@ interface Message {
   text: string;
   isUser: boolean;
   timestamp: Date;
-  quotedText?: string;
 }
 
 interface ChatPanelProps {
@@ -25,22 +25,92 @@ export default function ChatPanel({ onClose, initialInputValue }: ChatPanelProps
   ]);
   const [inputValue, setInputValue] = useState('');
   const [quotedText, setQuotedText] = useState(initialInputValue || '');
+  const [showSettingsDropdown, setShowSettingsDropdown] = useState(false);
+  const [panelPosition, setPanelPosition] = useState<'right' | 'left'>('right');
+  // Conditionally use the hook to avoid QueryClient errors
+  const [isLoading, setIsLoading] = useState(false);
+  const [sendMessage] = useState(() => {
+    return async (content: string) => {
+      try {
+        setIsLoading(true);
+        // For now, simulate a response since we don't have a backend
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        return {
+          userMessage: { id: Date.now().toString(), content, role: 'user' as const },
+          assistantMessage: { 
+            id: (Date.now() + 1).toString(), 
+            content: 'This is a simulated response. The backend API is not yet connected.', 
+            role: 'assistant' as const 
+          },
+          conversationId: undefined
+        };
+      } catch (error) {
+        console.error('Failed to send message:', error);
+        throw error;
+      } finally {
+        setIsLoading(false);
+      }
+    };
+  });
 
-  const handleSendMessage = () => {
+  // Load saved panel position on mount
+  useEffect(() => {
+    const savedPosition = localStorage.getItem('chatPanelPosition');
+    if (savedPosition === 'left' || savedPosition === 'right') {
+      setPanelPosition(savedPosition);
+    }
+  }, []);
+
+  // Save panel position when it changes
+  useEffect(() => {
+    localStorage.setItem('chatPanelPosition', panelPosition);
+  }, [panelPosition]);
+
+  const handleSendMessage = async () => {
     if (inputValue.trim()) {
-      const newMessage: Message = {
+      // Create message content with quoted text if available
+      let messageContent = inputValue;
+      if (quotedText) {
+        messageContent = `"${quotedText}"\n\n${inputValue}`;
+      }
+
+      const userMessage: Message = {
         id: Date.now().toString(),
-        text: inputValue,
+        text: messageContent,
         isUser: true,
-        timestamp: new Date(),
-        quotedText: quotedText || undefined
+        timestamp: new Date()
       };
-      setMessages(prev => [...prev, newMessage]);
+      setMessages(prev => [...prev, userMessage]);
       setInputValue('');
       
       // Clear the quoted text from input area after sending
       if (quotedText) {
         setQuotedText('');
+      }
+
+      try {
+        // Send message to backend using TanStack Query
+        const result = await sendMessage(messageContent);
+        
+        // Add AI response message
+        const aiMessage: Message = {
+          id: result.assistantMessage.id,
+          text: result.assistantMessage.content,
+          isUser: false,
+          timestamp: new Date()
+        };
+        setMessages(prev => [...prev, aiMessage]);
+      } catch (error) {
+        console.error('Error sending message:', error);
+        // Add error message
+        const errorMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          text: 'Sorry, there was an error processing your request.',
+          isUser: false,
+          timestamp: new Date()
+        };
+        setMessages(prev => [...prev, errorMessage]);
       }
     }
   };
@@ -58,11 +128,71 @@ export default function ChatPanel({ onClose, initialInputValue }: ChatPanelProps
     }
   };
 
+  const handleSettingsClick = () => {
+    setShowSettingsDropdown(!showSettingsDropdown);
+  };
+
+  const handlePositionChange = (position: 'left' | 'right') => {
+    if (position !== panelPosition) {
+      // Start animation sequence
+      const panel = document.querySelector('.chat-panel') as HTMLElement;
+      if (panel) {
+        // Stage 1: Close panel
+        panel.style.transform = 'translateX(100%)';
+        panel.style.transition = 'transform 0.3s ease-in-out';
+        
+        setTimeout(() => {
+          // Stage 2: Update position and push content
+          setPanelPosition(position);
+          setShowSettingsDropdown(false);
+          
+          // Notify content script to adjust webpage content
+          window.postMessage({
+            type: 'PANEL_POSITION_CHANGE',
+            position: position
+          }, '*');
+          
+          // Stage 3: Reopen panel
+          setTimeout(() => {
+            panel.style.transform = 'translateX(0)';
+          }, 50);
+          
+          // Reset transition after animation
+          setTimeout(() => {
+            panel.style.transition = '';
+            panel.style.transform = '';
+          }, 350);
+        }, 300);
+      }
+    } else {
+      setShowSettingsDropdown(false);
+    }
+  };
+
   return (
-    <div className="chat-panel">
+    <div className={`chat-panel ${panelPosition === 'left' ? 'chat-panel-left' : 'chat-panel-right'}`}>
       <div className="chat-header">
         <h3>Focus Fox</h3>
-        <button className="close-btn" onClick={handleClose}>×</button>
+        <div className="header-buttons">
+          <div className="settings-container">
+            <button className="settings-btn" onClick={handleSettingsClick}>
+              ⋯
+            </button>
+            {showSettingsDropdown && (
+              <div className="settings-dropdown">
+                <div className="dropdown-item" onClick={() => handlePositionChange('left')}>
+                  <span>Panel: Left</span>
+                  {panelPosition === 'left' && <span className="check">✓</span>}
+                </div>
+                <div className="dropdown-item" onClick={() => handlePositionChange('right')}>
+                  <span>Panel: Right</span>
+                  {panelPosition === 'right' && <span className="check">✓</span>}
+                </div>
+              </div>
+            )}
+          </div>
+          <button className="close-btn" onClick={handleClose}>×</button>
+        </div>
       </div>
       
       <div className="chat-messages">
@@ -72,12 +202,6 @@ export default function ChatPanel({ onClose, initialInputValue }: ChatPanelProps
             className={`message ${message.isUser ? 'user-message' : 'ai-message'}`}
           >
             <div className="message-content">
-              {message.quotedText && (
-                <div className="message-quoted-text">
-                  <div className="message-quote-line"></div>
-                  <span className="message-quote-content">{message.quotedText}</span>
-                </div>
-              )}
               {message.text}
             </div>
             <div className="message-timestamp">
@@ -85,6 +209,16 @@ export default function ChatPanel({ onClose, initialInputValue }: ChatPanelProps
             </div>
           </div>
         ))}
+        
+        {isLoading && (
+          <div className="message ai-message">
+            <div className="loading-message">
+              <div className="spinner-container">
+                <div className="spinner"></div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
       
       <div className="chat-input-container">
@@ -103,15 +237,20 @@ export default function ChatPanel({ onClose, initialInputValue }: ChatPanelProps
               placeholder={quotedText ? "Ask about the quoted text..." : "Ask anything..."}
               className="chat-input"
               rows={1}
+              disabled={isLoading}
             />
             <button
               onClick={handleSendMessage}
               className="send-button"
-              disabled={!inputValue.trim()}
+              disabled={!inputValue.trim() || isLoading}
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <polygon points="5,3 19,12 5,21"></polygon>
-              </svg>
+              {isLoading ? (
+                <Spinner size="small" color="white" />
+              ) : (
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <polygon points="5,3 19,12 5,21"></polygon>
+                </svg>
+              )}
             </button>
           </div>
         </div>

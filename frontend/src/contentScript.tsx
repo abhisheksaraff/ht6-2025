@@ -8,8 +8,8 @@ document.head.appendChild(style);
 import { createRoot } from 'react-dom/client';
 import type { Root as ReactDOMRoot } from 'react-dom/client';
 import ChatPanel from './components/ChatPanel';
+import { QueryProvider } from './api';
 import './App.css';
-// @ts-ignore
 import foxPngUrl from './assets/fox.png?url';
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 declare const chrome: any;
@@ -78,18 +78,38 @@ let dragMoved = false;
 let panelOpen = false;
 
 const PANEL_WIDTH = 400;
-function setBodyMargin(open: boolean) {
-  if (open) {
-    document.body.style.transition = 'margin-right 0.2s cubic-bezier(.4,0,.2,1)';
-    document.body.style.marginRight = PANEL_WIDTH + 'px';
+
+function updateContainerPosition(position: 'left' | 'right') {
+  if (position === 'left') {
+    container!.style.left = '0';
+    container!.style.right = '';
   } else {
-    document.body.style.transition = 'margin-right 0.2s cubic-bezier(.4,0,.2,1)';
+    container!.style.right = '0';
+    container!.style.left = '';
+  }
+}
+
+function setBodyMargin(open: boolean, position: 'left' | 'right' = 'right') {
+  if (open) {
+    document.body.style.transition = 'margin-right 0.2s cubic-bezier(.4,0,.2,1), margin-left 0.2s cubic-bezier(.4,0,.2,1)';
+    if (position === 'right') {
+      document.body.style.marginRight = PANEL_WIDTH + 'px';
+      document.body.style.marginLeft = '';
+    } else {
+      document.body.style.marginLeft = PANEL_WIDTH + 'px';
+      document.body.style.marginRight = '';
+    }
+  } else {
+    document.body.style.transition = 'margin-right 0.2s cubic-bezier(.4,0,.2,1), margin-left 0.2s cubic-bezier(.4,0,.2,1)';
     document.body.style.marginRight = '';
+    document.body.style.marginLeft = '';
   }
 }
 
 function closePanel() {
-  root && root.render(null);
+  if (root) {
+    root.render(null);
+  }
   container!.style.display = 'none';
   panelOpen = false;
   setBodyMargin(false);
@@ -101,8 +121,12 @@ function openPanel(selectedText?: string) {
   console.log('Container exists:', !!container);
   console.log('Container display before:', container?.style.display);
   
+  // Get saved panel position
+  const savedPosition = localStorage.getItem('chatPanelPosition') || 'right';
+  
   panelOpen = true;
-  setBodyMargin(true);
+  updateContainerPosition(savedPosition as 'left' | 'right');
+  setBodyMargin(true, savedPosition as 'left' | 'right');
   container!.style.display = 'flex';
   
   console.log('Container display after:', container?.style.display);
@@ -115,7 +139,9 @@ function openPanel(selectedText?: string) {
   
   console.log('Rendering ChatPanel component');
   root.render(
-    <ChatPanel onClose={closePanel} initialInputValue={selectedText} />
+    <QueryProvider>
+      <ChatPanel onClose={closePanel} initialInputValue={selectedText} />
+    </QueryProvider>
   );
   document.body.appendChild(btn); // ensure button is last
   console.log('Panel should now be open');
@@ -190,6 +216,24 @@ btn.addEventListener('click', () => {
   } else {
     console.log('Fox button: calling closePanel()');
     closePanel();
+  }
+});
+
+// --- Message Listener for Panel Position Changes ---
+window.addEventListener('message', (event) => {
+  if (event.data.type === 'PANEL_POSITION_CHANGE') {
+    const { position } = event.data;
+    if (panelOpen) {
+      // Update container position first
+      updateContainerPosition(position);
+      
+      // Reset all margins first to clear any previous state
+      document.body.style.marginRight = '';
+      document.body.style.marginLeft = '';
+      
+      // Then set the new margin based on position
+      setBodyMargin(true, position);
+    }
   }
 });
 
