@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import "./ChatPanel.css";
 import { ContentObserver } from "../utils/contentObserver";
+
 import {
   extractPageContent,
   getPageMetadata,
@@ -38,20 +39,170 @@ export default function ChatPanel({
   const contentObserverRef = useRef<ContentObserver | null>(null);
   const currentUrlRef = useRef<string>("");
 
+  const [data, setData] = useState("");
   // Listening to response from Gemini
   // npm install eventsource
-  const [data, setData] = useState<{ message: string } | null>();
+  // const [data, setData] = useState<{ message: string } | null>();
+  // useEffect(() => {
+  //   const evtSource = new EventSource("http://localhost:8787/api/generate");
+  //   evtSource.onmessage = (event) => {
+  //     if (event.data) {
+  //       setData(JSON.parse(event.data));
+  //       console.log(event.data);
+  //     }
+  //   };
+  // }, []);
+
+  // const triggerMessage = async (): Promise<void> => {
+  //   await fetch("http://localhost:8787/api/generate", {
+  //     method: "GET",
+  //     headers: {
+  //       "Content-Type": "application/json",
+  //     },
+  //     body: JSON.stringify({
+  //       contents: [
+  //         "0198269d-b39f-7568-a4e2-0d20751eaccd",
+  //         "0198269e-1d1f-73ca-8249-0f5abac6ebf2",
+  //         "0198269e-6950-724a-a658-fd993492fc29",
+  //       ],
+  //       search: true,
+  //     }),
+  //   });
+  // };
+
+  const [fullText, setFullText] = useState(""); // Raw incoming stream
+  const [animatedText, setAnimatedText] = useState("text here"); // What user sees
+
+  const triggerMessage = async () => {
+    console.log(data);
+    const contents = [];
+    let response;
+
+    response = await fetch("http://localhost:8787/api/content", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        content: "You are the assisstant",
+        role: "system",
+      }),
+    });
+
+    const { id: system } = await response.json();
+
+    response = await fetch("http://localhost:8787/api/content", {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        id: system,
+        content: "Give me a very short answer.",
+        role: "user",
+      }),
+    });
+
+    const { id: short } = await response.json();
+
+    response = await fetch("http://localhost:8787/api/content", {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        id: system,
+        content: "York University",
+        role: "user",
+      }),
+    });
+
+    const { id: res1 } = await response.json();
+
+    response = await fetch("http://localhost:8787/api/content", {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        id: system,
+        content: "Any University",
+        role: "user",
+      }),
+    });
+
+    const { id: res2 } = await response.json();
+
+    response = await fetch("http://localhost:8787/api/content", {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        id: system,
+        content: "Location of University",
+        role: "user",
+      }),
+    });
+
+    const { id: res3 } = await response.json();
+
+    contents.push(system);
+    contents.push(short);
+    contents.push(res1);
+    contents.push(res2);
+    contents.push(res3);
+
+    console.log(contents);
+
+    setData("");
+    const params = new URLSearchParams();
+    contents.forEach((str) => params.append("contents", str));
+    params.append("search", "false");
+
+    const evtSource = new EventSource(
+      `http://localhost:8787/api/generate?${params}`
+    );
+
+    // evtSource.onmessage = (event) => {
+    //   if (event.data) {
+    //     const parsed = event.data;//JSON.parse(event.data);
+    //     setData(parsed);
+    //     //console.log(data);
+    //   }
+    // };
+
+    evtSource.onmessage = (event) => {
+      setFullText((prev) => prev + event.data); // append new data
+    };
+
+    return () => evtSource.close();
+  };
+
+  // useEffect(() => {
+  //   const evtSource = new EventSource("http://localhost:8787/api/stream");
+
+  //   evtSource.onmessage = (event) => {
+  //     setFullText((prev) => prev + event.data); // append new data
+  //   };
+
+  //   return () => evtSource.close();
+  // }, []);
+
   useEffect(() => {
-    try {
-      const evtSource = new EventSource("http://localhost:8787/api/content");
-      evtSource.onmessage = (event) => {
-        if (event.data) {
-          setData(JSON.parse(event.data));
-        }
-      };
-    } catch (err) {
-      console.log("Failed listening from Event Source ", err);
-    }
+    if (animatedText.length >= fullText.length) return;
+
+    const timeout = setTimeout(() => {
+      setAnimatedText(fullText.slice(0, animatedText.length + 1));
+    }, 20); // adjust speed here
+
+    return () => clearTimeout(timeout);
+  }, [fullText, animatedText]);
+
+  useEffect(() => {
+    console.log("*****Start");
+    triggerMessage();
+    console.log("*****End");
   }, []);
 
   // Initialize content observer and handle URL changes
@@ -194,6 +345,10 @@ export default function ChatPanel({
       </div>
 
       <div className="chat-input-container">
+        <div className="whitespace-pre-wrap font-mono" style={{ color: "red" }}>
+          {animatedText}
+        </div>
+        ;
         <div className="input-wrapper">
           {quotedText && (
             <div className="quoted-text">

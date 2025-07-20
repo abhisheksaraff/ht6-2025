@@ -20,6 +20,7 @@ export class GeminiClient implements IGeminiClient {
       contents,
       model: "gemini-2.0-flash",
       config: {
+        maxOutputTokens: 250,
         tools,
         systemInstruction: systemInstruction
       }
