@@ -4,11 +4,12 @@ import reactLogo from './assets/react.svg'
 // Removed: import ChatPanel from './components/ChatPanel'
 
 function App() {
+  console.log('🦊 App is running');
   const [count, setCount] = useState(0)
   // Removed: showChatPanel and setShowChatPanel
 
-  // Add/remove body class when chat panel is toggled
   useEffect(() => {
+    console.log('🦊 MINIMAL useEffect in App is running');
     // Removed: chat-panel-open logic
     return () => {};
   }, []);

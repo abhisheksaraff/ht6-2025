@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useSchedule } from './useSchedule';
 
 // Chrome types declaration
 declare const chrome: any;
@@ -6,6 +7,7 @@ declare const chrome: any;
 export function useContentExtraction() {
   const [contentSent, setContentSent] = useState(false);
   const [contentChanged, setContentChanged] = useState(false);
+  const [currentContentId, setCurrentContentId] = useState<string | null>(null);
 
   // Initialize content change detection
   useEffect(() => {
@@ -20,11 +22,31 @@ export function useContentExtraction() {
       }
     });
 
+    const schedule = useSchedule();
+
+
+
     // Listen for content change notifications from content script
     const handleContentChange = (message: any) => {
       if (message.type === 'CONTENT_CHANGED') {
         console.log('🦊 Content change detected by content script');
         setContentChanged(true);
+      } else if (message.type === 'CONTENT_UPDATED' && message.data) {
+        console.log('🦊 Content updated from backend:', message.data);
+        setCurrentContentId(message.data.id);
+        function task() {
+          schedule.add(message.data.id, message.data.ttl - 6000, () => {
+            task();
+          });
+        }
+
+        if (currentContentId) {
+          schedule.remove(currentContentId);
+        }
+
+        schedule.add(message.data.id, message.data.ttl - 6000, task);
+        setContentSent(true);
+        setContentChanged(false);
       }
     };
 
@@ -62,9 +84,11 @@ export function useContentExtraction() {
     // Mark content as sent to prevent repeated requests
     setContentSent(true);
     setContentChanged(false);
+    
   };
 
   return {
-    sendContentToBackendIfNeeded
+    sendContentToBackendIfNeeded,
+    currentContentId
   };
 } 

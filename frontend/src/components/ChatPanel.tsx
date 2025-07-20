@@ -2,8 +2,13 @@ import { useState } from 'react';
 import { Spinner } from './Spinner';
 import './ChatPanel.css';
 import { useContentExtraction } from '../hooks/useContentExtraction';
+import { useSchedule } from '../hooks/useSchedule';
 import { useMessageHandling } from '../hooks/useMessageHandling';
 import { useQuotedText } from '../hooks/useQuotedText';
+
+// Chrome types declaration
+// @ts-ignore
+const chrome = window.chrome;
 
 interface ChatPanelProps {
   onClose?: () => void;
@@ -11,33 +16,26 @@ interface ChatPanelProps {
 }
 
 export default function ChatPanel({ onClose, initialInputValue }: ChatPanelProps) {
-  console.log('🦊 ChatPanel component mounted');
-  
   const [inputValue, setInputValue] = useState('');
   const { sendContentToBackendIfNeeded } = useContentExtraction();
   const { messages, isLoading, sendMessage, addUserMessage, addAIMessage, addErrorMessage } = useMessageHandling();
   const { quotedText, clearQuotedText, textareaRef } = useQuotedText(initialInputValue);
+  const schedule = useSchedule();
+  console.log('🦊 useSchedule instance:', schedule);
   
   const handleSendMessage = async () => {
     if (inputValue.trim()) {
-      // Send content to backend on first user message if not already sent
       await sendContentToBackendIfNeeded();
-      
-      // Add user message
       addUserMessage(inputValue, quotedText || undefined);
       setInputValue('');
-      
-      // Clear the quoted text from input area after sending
       if (quotedText) {
         clearQuotedText();
       }
-
       try {
-        // Send message to backend
         const result = await sendMessage(inputValue);
-        
-        // Add AI response message
         addAIMessage(result.assistantMessage.content);
+
+        
       } catch (error) {
         console.error('Error sending message:', error);
         addErrorMessage();
@@ -55,14 +53,15 @@ export default function ChatPanel({ onClose, initialInputValue }: ChatPanelProps
   return (
     <div className="chat-panel chat-panel-sidebar">
       <div className="chat-header">
-        <h3>Focus Fox</h3>
+        <div className="header-left">
+          <h3>Focus Fox</h3>
+        </div>
         {onClose && (
           <div className="header-buttons">
             <button className="close-btn" onClick={onClose}>×</button>
           </div>
         )}
       </div>
-      
       <div className="chat-messages">
         {messages.map((message) => (
           <div
@@ -83,7 +82,6 @@ export default function ChatPanel({ onClose, initialInputValue }: ChatPanelProps
             </div>
           </div>
         ))}
-        
         {isLoading && (
           <div className="message ai-message">
             <div className="loading-message">
@@ -94,7 +92,6 @@ export default function ChatPanel({ onClose, initialInputValue }: ChatPanelProps
           </div>
         )}
       </div>
-      
       <div className="chat-input-container">
         <div className="input-wrapper">
           {quotedText && (

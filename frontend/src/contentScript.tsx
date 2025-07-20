@@ -331,13 +331,16 @@ function startContentMonitoring() {
   lastContentHash = createContentHash(document.body.textContent || '');
 }
 
+// Debounce mechanism for content extraction
+let extractionInProgress = false;
+
 // Listen for messages from sidebar via Chrome runtime
 chrome.runtime.onMessage.addListener((message: any, _sender: any, sendResponse: any) => {
   console.log('🦊 Content script received Chrome message:', message);
   
   if (message.type === 'EXTRACT_AND_SEND_CONTENT') {
     console.log('🦊 Content script received extract request');
-    extractAndSendContentFromMainPage();
+    extractAndSendContentFromMainPage(true, message.contentId);
   } else if (message.type === 'START_CONTENT_MONITORING') {
     console.log('🦊 Starting content monitoring...');
     startContentMonitoring();
@@ -348,9 +351,16 @@ chrome.runtime.onMessage.addListener((message: any, _sender: any, sendResponse: 
 });
 
 // Function to extract and send content from main page context
-async function extractAndSendContentFromMainPage() {
+async function extractAndSendContentFromMainPage(forceRefresh?: boolean, contentId?: string) {
+  if (extractionInProgress) {
+    console.log('🦊 Extraction already in progress, skipping...');
+    return;
+  }
+  
+  extractionInProgress = true;
+  
   try {
-    console.log('🦊 Extracting content from main page...');
+    console.log('🦊 Extracting content from main page...', forceRefresh ? '(forced refresh)' : '');
     
     // Simple content extraction for main page
     const content = {
@@ -377,16 +387,26 @@ async function extractAndSendContentFromMainPage() {
       url: metadata.url
     });
     
+    // Use the provided contentId if available
+    let currentContentId = contentId || null;
+    if (!currentContentId) {
+      console.log('🦊 No contentId provided, skipping PUT request.');
+      extractionInProgress = false;
+      return;
+    }
     try {
-      const response = await fetch('http://localhost:8787/api/content', {
-        method: 'POST',
+      const method = 'PUT';
+      const url = 'http://localhost:8787/api/content';
+      const body = { id: currentContentId, content: content.textContent, role: "user" };
+      
+      console.log(`🦊 Sending ${method} request with content ID:`, currentContentId);
+      
+      const response = await fetch(url, {
+        method,
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          content: content.textContent,
-          role: "user"
-        })
+        body: JSON.stringify(body)
       });
       
       if (!response.ok) {
@@ -396,12 +416,22 @@ async function extractAndSendContentFromMainPage() {
       const result = await response.json();
       console.log('✅ Content sent to backend successfully from main page');
       
+      // Send content update notification back to extension
+      chrome.runtime.sendMessage({
+        type: 'CONTENT_UPDATED',
+        data: result
+      }).catch((error: any) => {
+        console.error('🦊 Error sending content update notification:', error);
+      });
+      
       return result;
     } catch (error) {
       console.error('❌ Failed to send content to backend:', error);
     }
   } catch (error) {
     console.error('❌ Error extracting content from main page:', error);
+  } finally {
+    extractionInProgress = false;
   }
 }
 
