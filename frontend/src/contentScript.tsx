@@ -8,7 +8,6 @@ document.head.appendChild(style);
 import { createRoot } from 'react-dom/client';
 import type { Root as ReactDOMRoot } from 'react-dom/client';
 import ChatPanel from './components/ChatPanel';
-import { QueryProvider } from './api';
 import './App.css';
 import foxPngUrl from './assets/fox.png?url';
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -139,9 +138,7 @@ function openPanel(selectedText?: string) {
   
   console.log('Rendering ChatPanel component');
   root.render(
-    <QueryProvider>
-      <ChatPanel onClose={closePanel} initialInputValue={selectedText} />
-    </QueryProvider>
+    <ChatPanel onClose={closePanel} initialInputValue={selectedText} />
   );
   document.body.appendChild(btn); // ensure button is last
   console.log('Panel should now be open');
@@ -281,13 +278,14 @@ function createSelectionPopup() {
     border-radius: 8px;
     padding: 8px 12px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    z-index: 10000;
+    z-index: 2147483661;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     font-size: 14px;
     color: white;
     cursor: pointer;
     transition: all 0.2s ease;
     display: none;
+    pointer-events: auto;
   `;
   
   selectionPopup.innerHTML = 'Ask Focus Fox anything...';
@@ -308,8 +306,16 @@ function createSelectionPopup() {
     // Hide popup immediately
     hideSelectionPopup();
     
-    // Open chat panel with selected text in input
-    if (!panelOpen) {
+    if (panelOpen) {
+      // If panel is already open, send the selected text to the existing panel
+      console.log('Panel is open, sending selected text to existing panel:', selectedText);
+      // Send message to the existing panel to add the selected text
+      window.postMessage({
+        type: 'ADD_SELECTED_TEXT',
+        text: selectedText
+      }, '*');
+    } else {
+      // Open chat panel with selected text in input
       console.log('Calling openPanel() with selected text:', selectedText);
       openPanel(selectedText);
     }
@@ -354,6 +360,16 @@ function showSelectionPopup() {
   selectionPopup.style.left = `${rect.left + window.scrollX}px`;
   selectionPopup.style.top = `${rect.bottom + window.scrollY + 5}px`;
   selectionPopup.style.display = 'block';
+  
+  // Ensure popup is visible even when panel is open
+  if (panelOpen) {
+    // If panel is open, we need to send the selected text to the existing panel
+    // instead of opening a new one
+    selectionPopup.innerHTML = 'Add to chat...';
+  } else {
+    selectionPopup.innerHTML = 'Ask Focus Fox anything...';
+  }
+  
   console.log('Popup should now be visible');
 }
 

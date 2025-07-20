@@ -139,6 +139,19 @@ export default function ChatPanel({ onClose, initialInputValue }: ChatPanelProps
     localStorage.setItem('chatPanelPosition', panelPosition);
   }, [panelPosition]);
   
+  // Listen for selected text messages from content script
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data.type === 'ADD_SELECTED_TEXT' && event.data.text) {
+        console.log('Received selected text:', event.data.text);
+        setQuotedText(event.data.text);
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, []);
+  
   const handleSendMessage = async () => {
     if (inputValue.trim()) {
       
