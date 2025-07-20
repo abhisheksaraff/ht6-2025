@@ -5,16 +5,9 @@ style.textContent = chatPanelCss;
 document.head.appendChild(style);
 
 // React and assets imports
-import { createRoot } from 'react-dom/client';
-import type { Root as ReactDOMRoot } from 'react-dom/client';
-import ChatPanel from './components/ChatPanel';
-import './App.css';
-// @ts-ignore
 import foxPngUrl from './assets/fox.png?url';
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 declare const chrome: any;
-
-console.log('Content script running: attempting to render chat button');
 
 // --- Floating Fox Button Setup ---
 const btn = document.createElement('button');
@@ -43,84 +36,16 @@ btn.style.alignItems = 'center';
 btn.style.justifyContent = 'center';
 btn.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.3)';
 btn.style.transition = 'all 0.2s ease';
-btn.style.zIndex = '2147483660'; // above panel
+btn.style.zIndex = '2147483660';
 btn.style.fontSize = '28px';
 btn.style.isolation = 'isolate';
 document.body.appendChild(btn);
-
-// --- Chat Panel Container Setup ---
-const containerId = 'chrome-ext-chat-panel-root';
-let container = document.getElementById(containerId);
-if (!container) {
-  container = document.createElement('div');
-  container.id = containerId;
-  document.body.appendChild(container);
-}
-container.style.position = 'fixed';
-container.style.top = '0';
-container.style.right = '0';
-container.style.height = '100vh';
-container.style.width = '400px';
-container.style.zIndex = '2147483648'; // below button
-container.style.display = 'none'; // Hide by default
-container.style.flexDirection = 'column';
-container.style.boxShadow = '0 0 24px 0 rgba(0,0,0,0.25)';
-container.style.background = '#fff'; // Ensure panel has a background
-container.style.transition = 'right 0.2s cubic-bezier(.4,0,.2,1)';
-
-let root: ReactDOMRoot | null = null;
 
 // --- Drag and Toggle Logic ---
 let isDragging = false;
 let dragOffsetX = 0;
 let dragOffsetY = 0;
 let dragMoved = false;
-let panelOpen = false;
-
-const PANEL_WIDTH = 400;
-function setBodyMargin(open: boolean) {
-  if (open) {
-    document.body.style.transition = 'margin-right 0.2s cubic-bezier(.4,0,.2,1)';
-    document.body.style.marginRight = PANEL_WIDTH + 'px';
-  } else {
-    document.body.style.transition = 'margin-right 0.2s cubic-bezier(.4,0,.2,1)';
-    document.body.style.marginRight = '';
-  }
-}
-
-function closePanel() {
-  root && root.render(null);
-  container!.style.display = 'none';
-  panelOpen = false;
-  setBodyMargin(false);
-  document.body.appendChild(btn);
-}
-
-function openPanel(selectedText?: string) {
-  console.log('openPanel() called');
-  console.log('Container exists:', !!container);
-  console.log('Container display before:', container?.style.display);
-  
-  panelOpen = true;
-  setBodyMargin(true);
-  container!.style.display = 'flex';
-  
-  console.log('Container display after:', container?.style.display);
-  console.log('Root exists:', !!root);
-  
-  if (!root) {
-    console.log('Creating new React root');
-    root = createRoot(container!);
-  }
-  
-  console.log('Rendering ChatPanel component');
-  root.render(
-    <ChatPanel onClose={closePanel} initialInputValue={selectedText} />
-  );
-  document.body.appendChild(btn); // ensure button is last
-  console.log('Panel should now be open');
-  console.log('Final container display:', container?.style.display);
-}
 
 // Start dragging the button
 btn.addEventListener('mousedown', (e) => {
@@ -170,9 +95,8 @@ animStyle.textContent = `
 }`;
 document.head.appendChild(animStyle);
 
-// --- Button Click: Toggle Panel ---
+// --- Button Click: Open Sidebar ---
 btn.addEventListener('click', () => {
-  console.log('Fox button clicked!');
   if (dragMoved) {
     dragMoved = false;
     return;
@@ -183,14 +107,8 @@ btn.addEventListener('click', () => {
   btn.classList.add('fox-btn-animate');
   setTimeout(() => btn.classList.remove('fox-btn-animate'), 180);
 
-  // Toggle the chat panel
-  if (!panelOpen) {
-    console.log('Fox button: calling openPanel()');
-    openPanel();
-  } else {
-    console.log('Fox button: calling closePanel()');
-    closePanel();
-  }
+  // Open the sidebar
+  chrome.runtime.sendMessage({ type: 'OPEN_SIDEBAR' });
 });
 
 // --- Button Hover Styling ---
@@ -201,30 +119,19 @@ btn.addEventListener('mouseleave', () => {
   btn.style.background = '#ff5c1a';
 });
 
-// --- ESC Key Handling ---
+// --- Keyboard Shortcuts ---
 document.addEventListener('keydown', (e) => {
-  // ESC closes panel
-  if (e.key === 'Escape') {
-    if (panelOpen) {
-      closePanel();
-    }
-  }
-  // Cmd+K (Mac) or Ctrl+K (Win/Linux) toggles panel
+  // Cmd+K (Mac) or Ctrl+K (Win/Linux) opens sidebar
   if ((e.key === 'k' || e.key === 'K') && (e.metaKey || e.ctrlKey)) {
     e.preventDefault();
-    btn.click();
+    chrome.runtime.sendMessage({ type: 'OPEN_SIDEBAR' });
   }
 });
-
-// --- ChatPanel Component ---
-// Handles chat UI, user input, and can be extended to send/receive messages from a backend API.
-// See ChatPanel.tsx for details. 
 
 // Text selection popup functionality
 let selectionPopup: HTMLDivElement | null = null;
 
 function createSelectionPopup() {
-  console.log('Creating selection popup...');
   if (selectionPopup) {
     document.body.removeChild(selectionPopup);
   }
@@ -232,23 +139,27 @@ function createSelectionPopup() {
   selectionPopup = document.createElement('div');
   selectionPopup.style.cssText = `
     position: fixed;
+    top: 0;
+    left: 0;
     background: #ff5c1a;
     border: 1px solid #ff5c1a;
     border-radius: 8px;
     padding: 8px 12px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    z-index: 10000;
+    z-index: 2147483661;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     font-size: 14px;
     color: white;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: background-color 0.2s ease;
     display: none;
+    pointer-events: auto;
+    transform: translate3d(0, 0, 0);
+    will-change: transform;
   `;
   
   selectionPopup.innerHTML = 'Ask Focus Fox anything...';
   selectionPopup.addEventListener('mousedown', (e: MouseEvent) => {
-    console.log('Popup mousedown!');
     e.stopPropagation();
     e.preventDefault();
     
@@ -264,11 +175,11 @@ function createSelectionPopup() {
     // Hide popup immediately
     hideSelectionPopup();
     
-    // Open chat panel with selected text in input
-    if (!panelOpen) {
-      console.log('Calling openPanel() with selected text:', selectedText);
-      openPanel(selectedText);
-    }
+    // Check if sidebar is already open and send text directly, otherwise open sidebar
+    chrome.runtime.sendMessage({ 
+      type: 'SEND_TEXT_TO_SIDEBAR', 
+      text: selectedText 
+    });
   });
   
   // Hover effects
@@ -287,7 +198,6 @@ function createSelectionPopup() {
   });
   
   document.body.appendChild(selectionPopup);
-  console.log('Selection popup created and added to DOM');
   
   // Prevent popup from being hidden when clicking on it
   selectionPopup.addEventListener('mousedown', (e: MouseEvent) => {
@@ -296,21 +206,20 @@ function createSelectionPopup() {
 }
 
 function showSelectionPopup() {
-  console.log('showSelectionPopup called');
   const selection = window.getSelection();
   if (!selection || !selection.toString().trim() || !selectionPopup) {
-    console.log('No selection or popup, returning');
     return;
   }
   
   const range = selection.getRangeAt(0);
   const rect = range.getBoundingClientRect();
   
-  // Position popup below the selection
-  selectionPopup.style.left = `${rect.left + window.scrollX}px`;
-  selectionPopup.style.top = `${rect.bottom + window.scrollY + 5}px`;
+  // Direct positioning - no checks, no parsing, just set the position
+  selectionPopup.style.transform = `translate3d(${rect.left}px, ${rect.bottom + 5}px, 0)`;
   selectionPopup.style.display = 'block';
-  console.log('Popup should now be visible');
+  
+  // Update content
+  selectionPopup.innerHTML = 'Ask Focus Fox anything...';
 }
 
 function hideSelectionPopup() {
@@ -346,6 +255,155 @@ document.addEventListener('selectionchange', () => {
     hideSelectionPopup();
   }
 });
+
+// Update popup position when scrolling while text is selected
+document.addEventListener('scroll', () => {
+  const selection = window.getSelection();
+  if (selection && selection.toString().trim() && selectionPopup && selectionPopup.style.display !== 'none') {
+    // Immediate update - no throttling, no delays
+    showSelectionPopup();
+  }
+});
+
+// Content monitoring variables
+let contentObserver: MutationObserver | null = null;
+let lastContentHash: string = '';
+
+// Function to create content hash
+function createContentHash(text: string): string {
+  let hash = 0;
+  if (text.length === 0) return hash.toString();
+  
+  for (let i = 0; i < text.length; i++) {
+    const char = text.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32-bit integer
+  }
+  
+  return hash.toString();
+}
+
+// Function to start content monitoring
+function startContentMonitoring() {
+  if (contentObserver) {
+    contentObserver.disconnect();
+  }
+  
+  console.log('🦊 Starting content monitoring...');
+  
+  contentObserver = new MutationObserver((mutations) => {
+    // Filter out mutations from extension elements
+    const relevantMutations = mutations.filter(mutation => {
+      const target = mutation.target as Element;
+      return !target.closest('.chat-panel') && 
+             !target.closest('#focus-fox-extension') &&
+             !target.classList.contains('fox-btn');
+    });
+    
+    if (relevantMutations.length > 0) {
+      // Check if content actually changed
+      const currentContent = document.body.textContent || '';
+      const currentHash = createContentHash(currentContent);
+      
+             if (currentHash !== lastContentHash) {
+         console.log('🦊 Content change detected');
+         lastContentHash = currentHash;
+         
+         // Notify sidebar about content change via Chrome runtime
+         chrome.runtime.sendMessage({
+           type: 'CONTENT_CHANGED'
+         }).catch((error: any) => {
+           console.error('🦊 Error sending content change notification:', error);
+         });
+       }
+    }
+  });
+  
+  // Start observing
+  contentObserver.observe(document.body, {
+    childList: true,
+    subtree: true,
+    characterData: true,
+    attributes: true
+  });
+  
+  // Set initial hash
+  lastContentHash = createContentHash(document.body.textContent || '');
+}
+
+// Listen for messages from sidebar via Chrome runtime
+chrome.runtime.onMessage.addListener((message: any, _sender: any, sendResponse: any) => {
+  console.log('🦊 Content script received Chrome message:', message);
+  
+  if (message.type === 'EXTRACT_AND_SEND_CONTENT') {
+    console.log('🦊 Content script received extract request');
+    extractAndSendContentFromMainPage();
+  } else if (message.type === 'START_CONTENT_MONITORING') {
+    console.log('🦊 Starting content monitoring...');
+    startContentMonitoring();
+  }
+  
+  // Send response back
+  sendResponse({ success: true });
+});
+
+// Function to extract and send content from main page context
+async function extractAndSendContentFromMainPage() {
+  try {
+    console.log('🦊 Extracting content from main page...');
+    
+    // Simple content extraction for main page
+    const content = {
+      title: document.title,
+      content: document.body.innerHTML,
+      textContent: document.body.textContent || '',
+      length: document.body.textContent?.length || 0,
+      excerpt: document.querySelector('meta[name="description"]')?.getAttribute('content') || '',
+      byline: '',
+      siteName: window.location.hostname,
+      publishedTime: ''
+    };
+    
+    const metadata = {
+      url: window.location.href,
+      title: document.title,
+      domain: window.location.hostname,
+      timestamp: new Date().toISOString()
+    };
+    
+    console.log('📄 Extracted content:', {
+      title: content.title,
+      contentLength: content.textContent.length,
+      url: metadata.url
+    });
+    
+    try {
+      const response = await fetch('http://localhost:8787/api/content', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          content: content.textContent,
+          role: "user"
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const result = await response.json();
+      console.log('✅ Content sent to backend successfully from main page');
+      
+      return result;
+    } catch (error) {
+      console.error('❌ Failed to send content to backend:', error);
+    }
+  } catch (error) {
+    console.error('❌ Error extracting content from main page:', error);
+  }
+}
 
 // Initialize selection popup
 createSelectionPopup(); 

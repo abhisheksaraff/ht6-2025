@@ -37,13 +37,23 @@ export default defineConfig({
   build: {
     rollupOptions: {
       input: {
-        main: resolve(__dirname, 'index.html')
+        main: resolve(__dirname, 'index.html'),
+        sidebar: resolve(__dirname, 'public/sidebar.html'),
+        background: resolve(__dirname, 'src/background.ts')
       },
       output: {
         entryFileNames: '[name].js',
+        assetFileNames: (assetInfo) => {
+          if (assetInfo.name?.endsWith('.css')) {
+            return 'assets/[name]-[hash][extname]';
+          }
+          return 'assets/[name]-[hash][extname]';
+        },
+        chunkFileNames: 'assets/[name]-[hash].js',
       },
     },
     outDir: 'dist',
     emptyOutDir: true,
+    assetsInlineLimit: 0, // Don't inline assets
   }
 })

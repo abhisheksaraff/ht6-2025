@@ -1,15 +1,9 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState } from 'react';
+import { Spinner } from './Spinner';
 import './ChatPanel.css';
-import { ContentObserver } from '../utils/contentObserver';
-import { extractPageContent, getPageMetadata, sendContentToBackend } from '../utils/readability';
-
-interface Message {
-  id: string;
-  text: string;
-  isUser: boolean;
-  timestamp: Date;
-  quotedText?: string;
-}
+import { useContentExtraction } from '../hooks/useContentExtraction';
+import { useMessageHandling } from '../hooks/useMessageHandling';
+import { useQuotedText } from '../hooks/useQuotedText';
 
 interface ChatPanelProps {
   onClose?: () => void;
@@ -17,104 +11,36 @@ interface ChatPanelProps {
 }
 
 export default function ChatPanel({ onClose, initialInputValue }: ChatPanelProps) {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: 'ai-placeholder',
-      text: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
-      isUser: false,
-      timestamp: new Date()
-    }
-  ]);
+  console.log('🦊 ChatPanel component mounted');
+  
   const [inputValue, setInputValue] = useState('');
-  const [quotedText, setQuotedText] = useState(initialInputValue || '');
-  const [contentSent, setContentSent] = useState(false);
-  const contentObserverRef = useRef<ContentObserver | null>(null);
-  const currentUrlRef = useRef<string>('');
-
-  // Initialize content observer and handle URL changes
-  useEffect(() => {
-    const currentUrl = window.location.href;
-    
-    // Reset content sent flag when URL changes
-    if (currentUrl !== currentUrlRef.current) {
-      currentUrlRef.current = currentUrl;
-      setContentSent(false);
-      
-      // Stop previous observer if it exists
-      if (contentObserverRef.current) {
-        contentObserverRef.current.stop();
-      }
-    }
-
-    // Initialize content observer
-    if (!contentObserverRef.current) {
-      contentObserverRef.current = new ContentObserver((content) => {
-        console.log('🔄 Content updated from observer:', content);
-        setContentSent(true);
-      });
-      contentObserverRef.current.start();
-      console.log('👀 Content observer started');
-    }
-
-    // Cleanup on unmount
-    return () => {
-      if (contentObserverRef.current) {
-        contentObserverRef.current.stop();
-      }
-    };
-  }, []);
-
-  // Function to send content to backend
-  const sendContentToBackendIfNeeded = async () => {
-    if (contentSent) {
-      console.log('Content already sent for this page, skipping...');
-      return;
-    }
-    
-    console.log('🦊 Focus Fox: Extracting page content...');
-    try {
-      const content = extractPageContent();
-      if (!content) {
-        console.warn('Could not extract page content');
-        return;
-      }
-
-      console.log('📄 Extracted content:', {
-        title: content.title,
-        textLength: content.textContent.length,
-        excerpt: content.excerpt.substring(0, 100) + '...'
-      });
-
-      const metadata = getPageMetadata();
-      console.log('🌐 Page metadata:', metadata);
-      
-      console.log('📤 Sending to backend...');
-      await sendContentToBackend(content, metadata);
-      setContentSent(true);
-      console.log('✅ Page content sent to backend successfully');
-    } catch (error) {
-      console.error('❌ Failed to send content to backend:', error);
-    }
-  };
-
+  const { sendContentToBackendIfNeeded } = useContentExtraction();
+  const { messages, isLoading, sendMessage, addUserMessage, addAIMessage, addErrorMessage } = useMessageHandling();
+  const { quotedText, clearQuotedText, textareaRef } = useQuotedText(initialInputValue);
+  
   const handleSendMessage = async () => {
     if (inputValue.trim()) {
       // Send content to backend on first user message if not already sent
       await sendContentToBackendIfNeeded();
       
-      const newMessage: Message = {
-        id: Date.now().toString(),
-        text: inputValue,
-        isUser: true,
-        timestamp: new Date(),
-        quotedText: quotedText || undefined
-      };
-      setMessages(prev => [...prev, newMessage]);
+      // Add user message
+      addUserMessage(inputValue, quotedText || undefined);
       setInputValue('');
       
       // Clear the quoted text from input area after sending
       if (quotedText) {
-        setQuotedText('');
+        clearQuotedText();
+      }
+
+      try {
+        // Send message to backend
+        const result = await sendMessage(inputValue);
+        
+        // Add AI response message
+        addAIMessage(result.assistantMessage.content);
+      } catch (error) {
+        console.error('Error sending message:', error);
+        addErrorMessage();
       }
     }
   };
@@ -126,17 +52,15 @@ export default function ChatPanel({ onClose, initialInputValue }: ChatPanelProps
     }
   };
 
-  const handleClose = () => {
-    if (onClose) {
-      onClose();
-    }
-  };
-
   return (
-    <div className="chat-panel">
+    <div className="chat-panel chat-panel-sidebar">
       <div className="chat-header">
         <h3>Focus Fox</h3>
-        <button className="close-btn" onClick={handleClose}>×</button>
+        {onClose && (
+          <div className="header-buttons">
+            <button className="close-btn" onClick={onClose}>×</button>
+          </div>
+        )}
       </div>
       
       <div className="chat-messages">
@@ -159,6 +83,16 @@ export default function ChatPanel({ onClose, initialInputValue }: ChatPanelProps
             </div>
           </div>
         ))}
+        
+        {isLoading && (
+          <div className="message ai-message">
+            <div className="loading-message">
+              <div className="spinner-container">
+                <div className="spinner"></div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
       
       <div className="chat-input-container">
@@ -171,21 +105,27 @@ export default function ChatPanel({ onClose, initialInputValue }: ChatPanelProps
           )}
           <div className="input-row">
             <textarea
+              ref={textareaRef}
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               onKeyPress={handleKeyPress}
               placeholder={quotedText ? "Ask about the quoted text..." : "Ask anything..."}
               className="chat-input"
               rows={1}
+              disabled={isLoading}
             />
             <button
               onClick={handleSendMessage}
               className="send-button"
-              disabled={!inputValue.trim()}
+              disabled={!inputValue.trim() || isLoading}
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <polygon points="5,3 19,12 5,21"></polygon>
-              </svg>
+              {isLoading ? (
+                <Spinner size="small" color="white" />
+              ) : (
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <polygon points="5,3 19,12 5,21"></polygon>
+                </svg>
+              )}
             </button>
           </div>
         </div>
