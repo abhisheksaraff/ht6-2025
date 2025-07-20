@@ -5,10 +5,6 @@ style.textContent = chatPanelCss;
 document.head.appendChild(style);
 
 // React and assets imports
-import { createRoot } from 'react-dom/client';
-import type { Root as ReactDOMRoot } from 'react-dom/client';
-import ChatPanel from './components/ChatPanel';
-import './App.css';
 import foxPngUrl from './assets/fox.png?url';
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 declare const chrome: any;
@@ -40,97 +36,16 @@ btn.style.alignItems = 'center';
 btn.style.justifyContent = 'center';
 btn.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.3)';
 btn.style.transition = 'all 0.2s ease';
-btn.style.zIndex = '2147483660'; // above panel
+btn.style.zIndex = '2147483660';
 btn.style.fontSize = '28px';
 btn.style.isolation = 'isolate';
 document.body.appendChild(btn);
-
-// --- Chat Panel Container Setup ---
-const containerId = 'chrome-ext-chat-panel-root';
-let container = document.getElementById(containerId);
-if (!container) {
-  container = document.createElement('div');
-  container.id = containerId;
-  document.body.appendChild(container);
-}
-container.style.position = 'fixed';
-container.style.top = '0';
-container.style.right = '0';
-container.style.height = '100vh';
-container.style.width = '400px';
-container.style.zIndex = '2147483648'; // below button
-container.style.display = 'none'; // Hide by default
-container.style.flexDirection = 'column';
-container.style.boxShadow = '0 0 24px 0 rgba(0,0,0,0.25)';
-container.style.background = '#fff'; // Ensure panel has a background
-container.style.transition = 'right 0.2s cubic-bezier(.4,0,.2,1)';
-
-let root: ReactDOMRoot | null = null;
 
 // --- Drag and Toggle Logic ---
 let isDragging = false;
 let dragOffsetX = 0;
 let dragOffsetY = 0;
 let dragMoved = false;
-let panelOpen = false;
-
-const PANEL_WIDTH = 400;
-
-function updateContainerPosition(position: 'left' | 'right') {
-  if (position === 'left') {
-    container!.style.left = '0';
-    container!.style.right = '';
-  } else {
-    container!.style.right = '0';
-    container!.style.left = '';
-  }
-}
-
-function setBodyMargin(open: boolean, position: 'left' | 'right' = 'right') {
-  if (open) {
-    document.body.style.transition = 'margin-right 0.2s cubic-bezier(.4,0,.2,1), margin-left 0.2s cubic-bezier(.4,0,.2,1)';
-    if (position === 'right') {
-      document.body.style.marginRight = PANEL_WIDTH + 'px';
-      document.body.style.marginLeft = '';
-    } else {
-      document.body.style.marginLeft = PANEL_WIDTH + 'px';
-      document.body.style.marginRight = '';
-    }
-  } else {
-    document.body.style.transition = 'margin-right 0.2s cubic-bezier(.4,0,.2,1), margin-left 0.2s cubic-bezier(.4,0,.2,1)';
-    document.body.style.marginRight = '';
-    document.body.style.marginLeft = '';
-  }
-}
-
-function closePanel() {
-  if (root) {
-    root.render(null);
-  }
-  container!.style.display = 'none';
-  panelOpen = false;
-  setBodyMargin(false);
-  document.body.appendChild(btn);
-}
-
-function openPanel(selectedText?: string) {
-  // Get saved panel position
-  const savedPosition = localStorage.getItem('chatPanelPosition') || 'right';
-  
-  panelOpen = true;
-  updateContainerPosition(savedPosition as 'left' | 'right');
-  setBodyMargin(true, savedPosition as 'left' | 'right');
-  container!.style.display = 'flex';
-  
-  if (!root) {
-    root = createRoot(container!);
-  }
-  
-  root.render(
-    <ChatPanel onClose={closePanel} initialInputValue={selectedText} />
-  );
-  document.body.appendChild(btn); // ensure button is last
-}
 
 // Start dragging the button
 btn.addEventListener('mousedown', (e) => {
@@ -180,7 +95,7 @@ animStyle.textContent = `
 }`;
 document.head.appendChild(animStyle);
 
-// --- Button Click: Toggle Panel ---
+// --- Button Click: Open Sidebar ---
 btn.addEventListener('click', () => {
   if (dragMoved) {
     dragMoved = false;
@@ -192,30 +107,8 @@ btn.addEventListener('click', () => {
   btn.classList.add('fox-btn-animate');
   setTimeout(() => btn.classList.remove('fox-btn-animate'), 180);
 
-  // Toggle the chat panel
-  if (!panelOpen) {
-    openPanel();
-  } else {
-    closePanel();
-  }
-});
-
-// --- Message Listener for Panel Position Changes ---
-window.addEventListener('message', (event) => {
-  if (event.data.type === 'PANEL_POSITION_CHANGE') {
-    const { position } = event.data;
-    if (panelOpen) {
-      // Update container position first
-      updateContainerPosition(position);
-      
-      // Reset all margins first to clear any previous state
-      document.body.style.marginRight = '';
-      document.body.style.marginLeft = '';
-      
-      // Then set the new margin based on position
-      setBodyMargin(true, position);
-    }
-  }
+  // Open the sidebar
+  chrome.runtime.sendMessage({ type: 'OPEN_SIDEBAR' });
 });
 
 // --- Button Hover Styling ---
@@ -226,24 +119,14 @@ btn.addEventListener('mouseleave', () => {
   btn.style.background = '#ff5c1a';
 });
 
-// --- ESC Key Handling ---
+// --- Keyboard Shortcuts ---
 document.addEventListener('keydown', (e) => {
-  // ESC closes panel
-  if (e.key === 'Escape') {
-    if (panelOpen) {
-      closePanel();
-    }
-  }
-  // Cmd+K (Mac) or Ctrl+K (Win/Linux) toggles panel
+  // Cmd+K (Mac) or Ctrl+K (Win/Linux) opens sidebar
   if ((e.key === 'k' || e.key === 'K') && (e.metaKey || e.ctrlKey)) {
     e.preventDefault();
-    btn.click();
+    chrome.runtime.sendMessage({ type: 'OPEN_SIDEBAR' });
   }
 });
-
-// --- ChatPanel Component ---
-// Handles chat UI, user input, and can be extended to send/receive messages from a backend API.
-// See ChatPanel.tsx for details. 
 
 // Text selection popup functionality
 let selectionPopup: HTMLDivElement | null = null;
@@ -292,17 +175,11 @@ function createSelectionPopup() {
     // Hide popup immediately
     hideSelectionPopup();
     
-    if (panelOpen) {
-      // If panel is already open, send the selected text to the existing panel
-      // Send message to the existing panel to add the selected text
-      window.postMessage({
-        type: 'ADD_SELECTED_TEXT',
-        text: selectedText
-      }, '*');
-    } else {
-      // Open chat panel with selected text in input
-      openPanel(selectedText);
-    }
+    // Open sidebar with selected text
+    chrome.runtime.sendMessage({ 
+      type: 'OPEN_SIDEBAR_WITH_TEXT', 
+      text: selectedText 
+    });
   });
   
   // Hover effects
@@ -341,8 +218,8 @@ function showSelectionPopup() {
   selectionPopup.style.transform = `translate3d(${rect.left}px, ${rect.bottom + 5}px, 0)`;
   selectionPopup.style.display = 'block';
   
-  // Update content based on panel state
-  selectionPopup.innerHTML = panelOpen ? 'Add to chat...' : 'Ask Focus Fox anything...';
+  // Update content
+  selectionPopup.innerHTML = 'Ask Focus Fox anything...';
 }
 
 function hideSelectionPopup() {

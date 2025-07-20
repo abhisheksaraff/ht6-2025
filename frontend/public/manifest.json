@@ -1,37 +1,29 @@
 {
   "manifest_version": 3,
-  "name": "Chat Assistant Extension",
+  "name": "Focus Fox - AI Chat Assistant",
   "version": "1.0.0",
-  "description": "A chat assistant that appears on any webpage",
+  "description": "An AI chat assistant that appears as a sidebar on any webpage",
   "permissions": [
-    "activeTab"
+    "activeTab",
+    "sidePanel"
   ],
+  "side_panel": {
+    "default_path": "public/sidebar.html"
+  },
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["content.js"]
+      "js": ["contentScript.js"]
     }
   ],
-  "web_accessible_resources": [
-    {
-      "resources": ["index.html", "assets/*", "fox.png"],
-      "matches": ["<all_urls>"]
-    }
-  ],
-  "action": {
-    "default_popup": "index.html"
-  },
-  "permissions": [],
   "web_accessible_resources": [
     {
       "resources": ["assets/fox-*.png"],
       "matches": ["<all_urls>"]
     }
   ],
-  "content_scripts": [
-    {
-      "matches": ["<all_urls>"],
-      "js": ["contentScript.js"]
-    }
-  ]
+  "action": {},
+  "background": {
+    "service_worker": "background.js"
+  }
 }

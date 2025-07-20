@@ -31,8 +31,6 @@ export default function ChatPanel({ onClose, initialInputValue }: ChatPanelProps
   const [contentChanged, setContentChanged] = useState(false);
   const contentObserverRef = useRef<ContentObserver | null>(null);
   const currentUrlRef = useRef<string>('');
-  const [showSettingsDropdown, setShowSettingsDropdown] = useState(false);
-  const [panelPosition, setPanelPosition] = useState<'right' | 'left'>('right');
   // Conditionally use the hook to avoid QueryClient errors
   const [isLoading, setIsLoading] = useState(false);
 
@@ -127,19 +125,6 @@ export default function ChatPanel({ onClose, initialInputValue }: ChatPanelProps
       }
     };
   });
-
-  // Load saved panel position on mount
-  useEffect(() => {
-    const savedPosition = localStorage.getItem('chatPanelPosition');
-    if (savedPosition === 'left' || savedPosition === 'right') {
-      setPanelPosition(savedPosition);
-    }
-  }, []);
-
-  // Save panel position when it changes
-  useEffect(() => {
-    localStorage.setItem('chatPanelPosition', panelPosition);
-  }, [panelPosition]);
   
   // Listen for selected text messages from content script
   useEffect(() => {
@@ -212,77 +197,15 @@ export default function ChatPanel({ onClose, initialInputValue }: ChatPanelProps
     }
   };
 
-  const handleClose = () => {
-    if (onClose) {
-      onClose();
-    }
-  };
-
-  const handleSettingsClick = () => {
-    setShowSettingsDropdown(!showSettingsDropdown);
-  };
-
-  const handlePositionChange = (position: 'left' | 'right') => {
-    if (position !== panelPosition) {
-      // Start animation sequence
-      const panel = document.querySelector('.chat-panel') as HTMLElement;
-      if (panel) {
-        // Stage 1: Close panel
-        panel.style.transform = 'translateX(100%)';
-        panel.style.transition = 'transform 0.3s ease-in-out';
-        
-        setTimeout(() => {
-          // Stage 2: Update position and push content
-          setPanelPosition(position);
-          setShowSettingsDropdown(false);
-          
-          // Notify content script to adjust webpage content
-          window.postMessage({
-            type: 'PANEL_POSITION_CHANGE',
-            position: position
-          }, '*');
-          
-          // Stage 3: Reopen panel
-          setTimeout(() => {
-            panel.style.transform = 'translateX(0)';
-          }, 50);
-          
-          // Reset transition after animation
-          setTimeout(() => {
-            panel.style.transition = '';
-            panel.style.transform = '';
-          }, 350);
-        }, 300);
-      }
-    } else {
-      setShowSettingsDropdown(false);
-    }
-  };
-
   return (
-    <div className={`chat-panel ${panelPosition === 'left' ? 'chat-panel-left' : 'chat-panel-right'}`}>
+    <div className="chat-panel chat-panel-sidebar">
       <div className="chat-header">
         <h3>Focus Fox</h3>
-        <div className="header-buttons">
-          <div className="settings-container">
-            <button className="settings-btn" onClick={handleSettingsClick}>
-              ⋯
-            </button>
-            {showSettingsDropdown && (
-              <div className="settings-dropdown">
-                <div className="dropdown-item" onClick={() => handlePositionChange('left')}>
-                  <span>Panel: Left</span>
-                  {panelPosition === 'left' && <span className="check">✓</span>}
-                </div>
-                <div className="dropdown-item" onClick={() => handlePositionChange('right')}>
-                  <span>Panel: Right</span>
-                  {panelPosition === 'right' && <span className="check">✓</span>}
-                </div>
-              </div>
-            )}
+        {onClose && (
+          <div className="header-buttons">
+            <button className="close-btn" onClick={onClose}>×</button>
           </div>
-          <button className="close-btn" onClick={handleClose}>×</button>
-        </div>
+        )}
       </div>
       
       <div className="chat-messages">
