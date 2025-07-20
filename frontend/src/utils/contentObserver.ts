@@ -19,9 +19,23 @@ export class ContentObserver {
   start() {
     if (this.isObserving) return;
     
+    // Wait a bit for the extension to be fully loaded
+    setTimeout(() => {
+      this.startObserving();
+    }, 100);
+  }
+
+  private startObserving() {
+    if (this.isObserving) return;
+    
     this.observer = new MutationObserver((mutations) => {
-      // Check if any mutations are relevant to content changes
-      const hasContentChanges = mutations.some(mutation => {
+      // Filter out mutations from the extension elements
+      const relevantMutations = mutations.filter(mutation => 
+        !this.isExtensionMutation(mutation)
+      );
+      
+      // Check if any remaining mutations are relevant to content changes
+      const hasContentChanges = relevantMutations.some(mutation => {
         return (
           mutation.type === 'childList' ||
           mutation.type === 'characterData' ||
@@ -46,7 +60,6 @@ export class ContentObserver {
     });
 
     this.isObserving = true;
-    console.log('Content observer started');
   }
 
   stop() {
@@ -60,8 +73,6 @@ export class ContentObserver {
       clearTimeout(this.debounceTimer);
       this.debounceTimer = null;
     }
-    
-    console.log('Content observer stopped');
   }
 
   private debouncedContentCheck() {
@@ -75,38 +86,68 @@ export class ContentObserver {
   }
 
   private async checkContentChange() {
-    console.log('🔍 Checking for content changes...');
     try {
       const content = extractPageContent();
       if (!content) {
-        console.log('❌ No content extracted, skipping...');
         return;
       }
 
       // Create a simple hash of the content to detect changes
       const contentHash = this.createContentHash(content.textContent);
-      console.log('🔢 Content hash:', contentHash);
-      console.log('🔢 Previous hash:', this.lastContentHash);
       
       if (contentHash !== this.lastContentHash) {
-        console.log('🔄 Content change detected!');
+        console.log('📄 Page content changed - will send on next user message');
         this.lastContentHash = contentHash;
-        const metadata = getPageMetadata();
         
-        console.log('📤 Sending updated content to backend...');
-        
-        try {
-          const result = await sendContentToBackend(content, metadata);
-          this.onContentChange(result);
-        } catch (error) {
-          console.error('❌ Failed to send content to backend:', error);
-        }
-      } else {
-        console.log('✅ No content changes detected');
+        // Just notify that content changed, don't send immediately
+        this.onContentChange({ id: 'content-changed', ttl: 0 });
       }
     } catch (error) {
-      console.error('❌ Error checking content change:', error);
+      console.error('❌ ContentObserver: Error checking content change:', error);
     }
+  }
+
+  // Check if a mutation is related to the chat panel or any extension elements
+  private isExtensionMutation(mutation: MutationRecord): boolean {
+    // Check if the mutation target is within the chat panel
+    const chatPanel = document.querySelector('.chat-panel');
+    if (chatPanel && chatPanel.contains(mutation.target)) {
+      return true;
+    }
+    
+    // Check if the mutation target is the chat panel itself
+    if (mutation.target === chatPanel) {
+      return true;
+    }
+    
+    // Check if the mutation target is within any extension container
+    const extensionContainer = document.querySelector('#focus-fox-extension');
+    if (extensionContainer && extensionContainer.contains(mutation.target)) {
+      return true;
+    }
+    
+    // Check if the mutation target is the extension container itself
+    if (mutation.target === extensionContainer) {
+      return true;
+    }
+    
+    // Check if the mutation target has extension-related classes or IDs
+    const target = mutation.target as Element;
+    if (target && target.classList) {
+      const classList = Array.from(target.classList);
+      if (classList.some(cls => cls.includes('chat-') || cls.includes('fox-') || cls.includes('extension'))) {
+        return true;
+      }
+    }
+    
+    // Check if the mutation target has extension-related IDs
+    if (target && target.id) {
+      if (target.id.includes('chat') || target.id.includes('fox') || target.id.includes('extension')) {
+        return true;
+      }
+    }
+    
+    return false;
   }
 
   private createContentHash(text: string): string {

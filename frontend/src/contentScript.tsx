@@ -13,8 +13,6 @@ import foxPngUrl from './assets/fox.png?url';
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 declare const chrome: any;
 
-console.log('Content script running: attempting to render chat button');
-
 // --- Floating Fox Button Setup ---
 const btn = document.createElement('button');
 btn.textContent = '';
@@ -116,10 +114,6 @@ function closePanel() {
 }
 
 function openPanel(selectedText?: string) {
-  console.log('openPanel() called');
-  console.log('Container exists:', !!container);
-  console.log('Container display before:', container?.style.display);
-  
   // Get saved panel position
   const savedPosition = localStorage.getItem('chatPanelPosition') || 'right';
   
@@ -128,21 +122,14 @@ function openPanel(selectedText?: string) {
   setBodyMargin(true, savedPosition as 'left' | 'right');
   container!.style.display = 'flex';
   
-  console.log('Container display after:', container?.style.display);
-  console.log('Root exists:', !!root);
-  
   if (!root) {
-    console.log('Creating new React root');
     root = createRoot(container!);
   }
   
-  console.log('Rendering ChatPanel component');
   root.render(
     <ChatPanel onClose={closePanel} initialInputValue={selectedText} />
   );
   document.body.appendChild(btn); // ensure button is last
-  console.log('Panel should now be open');
-  console.log('Final container display:', container?.style.display);
 }
 
 // Start dragging the button
@@ -195,7 +182,6 @@ document.head.appendChild(animStyle);
 
 // --- Button Click: Toggle Panel ---
 btn.addEventListener('click', () => {
-  console.log('Fox button clicked!');
   if (dragMoved) {
     dragMoved = false;
     return;
@@ -208,10 +194,8 @@ btn.addEventListener('click', () => {
 
   // Toggle the chat panel
   if (!panelOpen) {
-    console.log('Fox button: calling openPanel()');
     openPanel();
   } else {
-    console.log('Fox button: calling closePanel()');
     closePanel();
   }
 });
@@ -265,7 +249,6 @@ document.addEventListener('keydown', (e) => {
 let selectionPopup: HTMLDivElement | null = null;
 
 function createSelectionPopup() {
-  console.log('Creating selection popup...');
   if (selectionPopup) {
     document.body.removeChild(selectionPopup);
   }
@@ -290,7 +273,6 @@ function createSelectionPopup() {
   
   selectionPopup.innerHTML = 'Ask Focus Fox anything...';
   selectionPopup.addEventListener('mousedown', (e: MouseEvent) => {
-    console.log('Popup mousedown!');
     e.stopPropagation();
     e.preventDefault();
     
@@ -308,7 +290,6 @@ function createSelectionPopup() {
     
     if (panelOpen) {
       // If panel is already open, send the selected text to the existing panel
-      console.log('Panel is open, sending selected text to existing panel:', selectedText);
       // Send message to the existing panel to add the selected text
       window.postMessage({
         type: 'ADD_SELECTED_TEXT',
@@ -316,7 +297,6 @@ function createSelectionPopup() {
       }, '*');
     } else {
       // Open chat panel with selected text in input
-      console.log('Calling openPanel() with selected text:', selectedText);
       openPanel(selectedText);
     }
   });
@@ -337,7 +317,6 @@ function createSelectionPopup() {
   });
   
   document.body.appendChild(selectionPopup);
-  console.log('Selection popup created and added to DOM');
   
   // Prevent popup from being hidden when clicking on it
   selectionPopup.addEventListener('mousedown', (e: MouseEvent) => {
@@ -346,10 +325,8 @@ function createSelectionPopup() {
 }
 
 function showSelectionPopup() {
-  console.log('showSelectionPopup called');
   const selection = window.getSelection();
   if (!selection || !selection.toString().trim() || !selectionPopup) {
-    console.log('No selection or popup, returning');
     return;
   }
   
@@ -370,7 +347,6 @@ function showSelectionPopup() {
     selectionPopup.innerHTML = 'Ask Focus Fox anything...';
   }
   
-  console.log('Popup should now be visible');
 }
 
 function hideSelectionPopup() {

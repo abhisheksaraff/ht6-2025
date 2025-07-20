@@ -28,6 +28,7 @@ export default function ChatPanel({ onClose, initialInputValue }: ChatPanelProps
   const [inputValue, setInputValue] = useState('');
   const [quotedText, setQuotedText] = useState(initialInputValue || '');
   const [contentSent, setContentSent] = useState(false);
+  const [contentChanged, setContentChanged] = useState(false);
   const contentObserverRef = useRef<ContentObserver | null>(null);
   const currentUrlRef = useRef<string>('');
   const [showSettingsDropdown, setShowSettingsDropdown] = useState(false);
@@ -35,29 +36,29 @@ export default function ChatPanel({ onClose, initialInputValue }: ChatPanelProps
   // Conditionally use the hook to avoid QueryClient errors
   const [isLoading, setIsLoading] = useState(false);
 
-  // Initialize content observer and handle URL changes
+  // Initialize content observer and URL tracking
   useEffect(() => {
+    // Track URL changes
     const currentUrl = window.location.href;
     
     // Reset content sent flag when URL changes
     if (currentUrl !== currentUrlRef.current) {
       currentUrlRef.current = currentUrl;
       setContentSent(false);
+      setContentChanged(false);
       
       // Stop previous observer if it exists
       if (contentObserverRef.current) {
         contentObserverRef.current.stop();
       }
     }
-
+    
     // Initialize content observer
     if (!contentObserverRef.current) {
-      contentObserverRef.current = new ContentObserver((content) => {
-        console.log('🔄 Content updated from observer:', content);
-        setContentSent(true);
+      contentObserverRef.current = new ContentObserver((_content) => {
+        setContentChanged(true);
       });
       contentObserverRef.current.start();
-      console.log('👀 Content observer started');
     }
 
     // Cleanup on unmount
@@ -70,12 +71,14 @@ export default function ChatPanel({ onClose, initialInputValue }: ChatPanelProps
 
   // Function to send content to backend
   const sendContentToBackendIfNeeded = async () => {
-    if (contentSent) {
-      console.log('Content already sent for this page, skipping...');
-      return;
+    // Send content if:
+    // 1. Never sent before (first message), OR
+    // 2. Content has changed since last send
+    if (contentSent && !contentChanged) {
+      return; // Skip silently
     }
     
-    console.log('🦊 Focus Fox: Extracting page content...');
+    console.log('🦊 Extracting and sending page content...');
     try {
       const content = extractPageContent();
       if (!content) {
@@ -83,21 +86,20 @@ export default function ChatPanel({ onClose, initialInputValue }: ChatPanelProps
         return;
       }
 
-      console.log('📄 Extracted content:', {
-        title: content.title,
-        textLength: content.textContent.length,
-        excerpt: content.excerpt.substring(0, 100) + '...'
-      });
-
       const metadata = getPageMetadata();
-      console.log('🌐 Page metadata:', metadata);
       
-      console.log('📤 Sending to backend...');
-      await sendContentToBackend(content, metadata);
+      try {
+        await sendContentToBackend(content, metadata);
+        console.log('✅ Content sent to backend successfully');
+      } catch (error) {
+        console.error('❌ Failed to send content to backend:', error);
+      }
+      
+      // Always mark content as sent, regardless of backend success/failure
       setContentSent(true);
-      console.log('✅ Page content sent to backend successfully');
+      setContentChanged(false); // Reset the change flag
     } catch (error) {
-      console.error('❌ Failed to send content to backend:', error);
+      console.error('❌ Error in sendContentToBackendIfNeeded:', error);
     }
   };
 
@@ -143,7 +145,6 @@ export default function ChatPanel({ onClose, initialInputValue }: ChatPanelProps
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       if (event.data.type === 'ADD_SELECTED_TEXT' && event.data.text) {
-        console.log('Received selected text:', event.data.text);
         setQuotedText(event.data.text);
       }
     };
