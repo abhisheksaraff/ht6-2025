@@ -1,17 +1,9 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState } from 'react';
 import { Spinner } from './Spinner';
 import './ChatPanel.css';
-
-// Chrome types declaration
-declare const chrome: any;
-
-interface Message {
-  id: string;
-  text: string;
-  isUser: boolean;
-  timestamp: Date;
-  quotedText?: string;
-}
+import { useContentExtraction } from '../hooks/useContentExtraction';
+import { useMessageHandling } from '../hooks/useMessageHandling';
+import { useQuotedText } from '../hooks/useQuotedText';
 
 interface ChatPanelProps {
   onClose?: () => void;
@@ -21,176 +13,34 @@ interface ChatPanelProps {
 export default function ChatPanel({ onClose, initialInputValue }: ChatPanelProps) {
   console.log('🦊 ChatPanel component mounted');
   
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: 'ai-placeholder',
-      text: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
-      isUser: false,
-      timestamp: new Date()
-    }
-  ]);
-
   const [inputValue, setInputValue] = useState('');
-  const [quotedText, setQuotedText] = useState(initialInputValue || '');
-  const [contentSent, setContentSent] = useState(false);
-  const [contentChanged, setContentChanged] = useState(false);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  // Conditionally use the hook to avoid QueryClient errors
-  const [isLoading, setIsLoading] = useState(false);
-
-  // Initialize content change detection
-  useEffect(() => {
-    // Request content script to start monitoring for changes
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs: any) => {
-      if (tabs[0]?.id) {
-        chrome.tabs.sendMessage(tabs[0].id, {
-          type: 'START_CONTENT_MONITORING'
-        }).catch((error: any) => {
-          console.error('🦊 Error starting content monitoring:', error);
-        });
-      }
-    });
-
-    // Listen for content change notifications from content script
-    const handleContentChange = (message: any) => {
-      if (message.type === 'CONTENT_CHANGED') {
-        console.log('🦊 Content change detected by content script');
-        setContentChanged(true);
-      }
-    };
-
-    // Listen for Chrome runtime messages
-    chrome.runtime.onMessage.addListener(handleContentChange);
-    return () => chrome.runtime.onMessage.removeListener(handleContentChange);
-  }, []);
-
-  // Function to send content to backend
-  const sendContentToBackendIfNeeded = async () => {
-    // Send content if:
-    // 1. Never sent before (first message), OR
-    // 2. Content has changed since last send
-    if (contentSent && !contentChanged) {
-      return; // Skip silently
-    }
-    
-    console.log('🦊 Requesting content extraction from main page...');
-    console.log('🦊 contentSent:', contentSent, 'contentChanged:', contentChanged);
-    
-    // Send message to content script via Chrome runtime
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs: any) => {
-      if (tabs[0]?.id) {
-        console.log('🦊 Sending message to content script via Chrome runtime');
-        chrome.tabs.sendMessage(tabs[0].id, {
-          type: 'EXTRACT_AND_SEND_CONTENT'
-        }).catch((error: any) => {
-          console.error('🦊 Error sending message to content script:', error);
-        });
-      } else {
-        console.error('🦊 No active tab found');
-      }
-    });
-    
-    // Mark content as sent to prevent repeated requests
-    setContentSent(true);
-    setContentChanged(false);
-  };
-
-  const [sendMessage] = useState(() => {
-    return async (content: string) => {
-      try {
-        setIsLoading(true);
-        // For now, simulate a response since we don't have a backend
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        return {
-          userMessage: { id: Date.now().toString(), content, role: 'user' as const },
-          assistantMessage: { 
-            id: (Date.now() + 1).toString(), 
-            content: 'This is a simulated response. The backend API is not yet connected.', 
-            role: 'assistant' as const 
-          },
-          conversationId: undefined
-        };
-      } catch (error) {
-        console.error('Failed to send message:', error);
-        throw error;
-      } finally {
-        setIsLoading(false);
-      }
-    };
-  });
-  
-  // Listen for selected text messages from content script
-  useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
-      if (event.data.type === 'ADD_SELECTED_TEXT' && event.data.text) {
-        console.log('🦊 ChatPanel received selected text:', event.data.text);
-        setQuotedText(event.data.text);
-      }
-    };
-
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
-  }, []);
-
-  // Focus textarea and position cursor at the end when quoted text is set
-  useEffect(() => {
-    if (quotedText && textareaRef.current) {
-      // Use requestAnimationFrame to ensure DOM is updated
-      requestAnimationFrame(() => {
-        if (textareaRef.current) {
-          textareaRef.current.focus();
-          const length = textareaRef.current.value.length;
-          textareaRef.current.setSelectionRange(length, length);
-          console.log('🦊 Textarea focused and cursor positioned at end');
-        }
-      });
-    }
-  }, [quotedText]);
+  const { sendContentToBackendIfNeeded } = useContentExtraction();
+  const { messages, isLoading, sendMessage, addUserMessage, addAIMessage, addErrorMessage } = useMessageHandling();
+  const { quotedText, clearQuotedText, textareaRef } = useQuotedText(initialInputValue);
   
   const handleSendMessage = async () => {
     if (inputValue.trim()) {
-      
       // Send content to backend on first user message if not already sent
       await sendContentToBackendIfNeeded();
       
-      const userMessage: Message = {
-        id: Date.now().toString(),
-        text: inputValue,
-        isUser: true,
-        timestamp: new Date(),
-        quotedText: quotedText || undefined
-      };
-      setMessages(prev => [...prev, userMessage]);
+      // Add user message
+      addUserMessage(inputValue, quotedText || undefined);
       setInputValue('');
       
       // Clear the quoted text from input area after sending
       if (quotedText) {
-        setQuotedText('');
+        clearQuotedText();
       }
 
       try {
-        // Send message to backend using TanStack Query
+        // Send message to backend
         const result = await sendMessage(inputValue);
         
         // Add AI response message
-        const aiMessage: Message = {
-          id: result.assistantMessage.id,
-          text: result.assistantMessage.content,
-          isUser: false,
-          timestamp: new Date()
-        };
-        setMessages(prev => [...prev, aiMessage]);
+        addAIMessage(result.assistantMessage.content);
       } catch (error) {
         console.error('Error sending message:', error);
-        // Add error message
-        const errorMessage: Message = {
-          id: (Date.now() + 1).toString(),
-          text: 'Sorry, there was an error processing your request.',
-          isUser: false,
-          timestamp: new Date()
-        };
-        setMessages(prev => [...prev, errorMessage]);
+        addErrorMessage();
       }
     }
   };
