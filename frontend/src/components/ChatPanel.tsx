@@ -1,6 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Spinner } from './Spinner';
 import './ChatPanel.css';
+import { ContentObserver } from '../utils/contentObserver';
+import { extractPageContent, getPageMetadata, sendContentToBackend } from '../utils/readability';
 
 interface Message {
   id: string;
@@ -25,10 +27,80 @@ export default function ChatPanel({ onClose, initialInputValue }: ChatPanelProps
   ]);
   const [inputValue, setInputValue] = useState('');
   const [quotedText, setQuotedText] = useState(initialInputValue || '');
+  const [contentSent, setContentSent] = useState(false);
+  const contentObserverRef = useRef<ContentObserver | null>(null);
+  const currentUrlRef = useRef<string>('');
   const [showSettingsDropdown, setShowSettingsDropdown] = useState(false);
   const [panelPosition, setPanelPosition] = useState<'right' | 'left'>('right');
   // Conditionally use the hook to avoid QueryClient errors
   const [isLoading, setIsLoading] = useState(false);
+
+  // Initialize content observer and handle URL changes
+  useEffect(() => {
+    const currentUrl = window.location.href;
+    
+    // Reset content sent flag when URL changes
+    if (currentUrl !== currentUrlRef.current) {
+      currentUrlRef.current = currentUrl;
+      setContentSent(false);
+      
+      // Stop previous observer if it exists
+      if (contentObserverRef.current) {
+        contentObserverRef.current.stop();
+      }
+    }
+
+    // Initialize content observer
+    if (!contentObserverRef.current) {
+      contentObserverRef.current = new ContentObserver((content) => {
+        console.log('🔄 Content updated from observer:', content);
+        setContentSent(true);
+      });
+      contentObserverRef.current.start();
+      console.log('👀 Content observer started');
+    }
+
+    // Cleanup on unmount
+    return () => {
+      if (contentObserverRef.current) {
+        contentObserverRef.current.stop();
+      }
+    };
+  }, []);
+
+  // Function to send content to backend
+  const sendContentToBackendIfNeeded = async () => {
+    if (contentSent) {
+      console.log('Content already sent for this page, skipping...');
+      return;
+    }
+    
+    console.log('🦊 Focus Fox: Extracting page content...');
+    try {
+      const content = extractPageContent();
+      if (!content) {
+        console.warn('Could not extract page content');
+        return;
+      }
+
+      console.log('📄 Extracted content:', {
+        title: content.title,
+        textLength: content.textContent.length,
+        excerpt: content.excerpt.substring(0, 100) + '...'
+      });
+
+      const metadata = getPageMetadata();
+      console.log('🌐 Page metadata:', metadata);
+      
+      console.log('📤 Sending to backend...');
+      await sendContentToBackend(content, metadata);
+      setContentSent(true);
+      console.log('✅ Page content sent to backend successfully');
+    } catch (error) {
+      console.error('❌ Failed to send content to backend:', error);
+    }
+  };
+
   const [sendMessage] = useState(() => {
     return async (content: string) => {
       try {
@@ -67,14 +139,20 @@ export default function ChatPanel({ onClose, initialInputValue }: ChatPanelProps
     localStorage.setItem('chatPanelPosition', panelPosition);
   }, [panelPosition]);
 
-  const handleSendMessage = async () => {
+
+  
+  const handleSendMessage = () => {
     if (inputValue.trim()) {
+      
+      // Send content to backend on first user message if not already sent
+      await sendContentToBackendIfNeeded();
+      
       // Create message content with quoted text if available
       let messageContent = inputValue;
       if (quotedText) {
         messageContent = `"${quotedText}"\n\n${inputValue}`;
       }
-
+      
       const userMessage: Message = {
         id: Date.now().toString(),
         text: messageContent,

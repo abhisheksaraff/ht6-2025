@@ -1,40 +1,17 @@
 import { Hono } from "hono";
 import { post, put, options } from "./contentController";
+import { Generate } from "./generate";
+import { GeminiClient } from "./gemini";
 
-const app = new Hono<{ Bindings: CloudflareBindings }>();
-// env.VARIABLE;
-// UUID v7
-// ttl 10 * 60
-// {
-//   content: ""
-//   role: "" // user or model or system
-// }
+const app = new Hono<{ Bindings: Env }>();
 
-// return
-// {
-//   id: "",
-//   ttl: ttl,
-// }
 app.post("/api/content", post);
-
-// UUID v7
-// reset ttl to = 10mins
-//{
-//   id: "",
-//   content: "" optional
-// } res.status(200)
-
-// return
-// {
-//   id: "",
-//   ttl: ttl,
-// } res.status(200)
 app.put("/api/content", put);
-
 app.options("/api/content", options);
 
-app.post("/api/generate", (c) => {
-  return c.text("Hello Hono!");
+app.post("/api/generate", async (c) => {
+  const generate = new Generate(new GeminiClient(c.env.GEMINI_API_KEY));
+  return generate.post(c);
 });
 
 export default app;
