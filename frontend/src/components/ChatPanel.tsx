@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { Spinner } from './Spinner';
 import './ChatPanel.css';
-import { ContentObserver } from '../utils/contentObserver';
-import { extractPageContent, getPageMetadata, sendContentToBackend } from '../utils/readability';
+
+// Chrome types declaration
+declare const chrome: any;
 
 interface Message {
   id: string;
@@ -18,6 +19,8 @@ interface ChatPanelProps {
 }
 
 export default function ChatPanel({ onClose, initialInputValue }: ChatPanelProps) {
+  console.log('🦊 ChatPanel component mounted');
+  
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 'ai-placeholder',
@@ -26,47 +29,39 @@ export default function ChatPanel({ onClose, initialInputValue }: ChatPanelProps
       timestamp: new Date()
     }
   ]);
+
   const [inputValue, setInputValue] = useState('');
   const [quotedText, setQuotedText] = useState(initialInputValue || '');
   const [contentSent, setContentSent] = useState(false);
   const [contentChanged, setContentChanged] = useState(false);
-  const contentObserverRef = useRef<ContentObserver | null>(null);
-  const currentUrlRef = useRef<string>('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   // Conditionally use the hook to avoid QueryClient errors
   const [isLoading, setIsLoading] = useState(false);
 
-  // Initialize content observer and URL tracking
+  // Initialize content change detection
   useEffect(() => {
-    // Track URL changes
-    const currentUrl = window.location.href;
-    
-    // Reset content sent flag when URL changes
-    if (currentUrl !== currentUrlRef.current) {
-      currentUrlRef.current = currentUrl;
-      setContentSent(false);
-      setContentChanged(false);
-      
-      // Stop previous observer if it exists
-      if (contentObserverRef.current) {
-        contentObserverRef.current.stop();
+    // Request content script to start monitoring for changes
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs: any) => {
+      if (tabs[0]?.id) {
+        chrome.tabs.sendMessage(tabs[0].id, {
+          type: 'START_CONTENT_MONITORING'
+        }).catch((error: any) => {
+          console.error('🦊 Error starting content monitoring:', error);
+        });
       }
-    }
-    
-    // Initialize content observer
-    if (!contentObserverRef.current) {
-      contentObserverRef.current = new ContentObserver((_content) => {
-        setContentChanged(true);
-      });
-      contentObserverRef.current.start();
-    }
+    });
 
-    // Cleanup on unmount
-    return () => {
-      if (contentObserverRef.current) {
-        contentObserverRef.current.stop();
+    // Listen for content change notifications from content script
+    const handleContentChange = (message: any) => {
+      if (message.type === 'CONTENT_CHANGED') {
+        console.log('🦊 Content change detected by content script');
+        setContentChanged(true);
       }
     };
+
+    // Listen for Chrome runtime messages
+    chrome.runtime.onMessage.addListener(handleContentChange);
+    return () => chrome.runtime.onMessage.removeListener(handleContentChange);
   }, []);
 
   // Function to send content to backend
@@ -78,29 +73,26 @@ export default function ChatPanel({ onClose, initialInputValue }: ChatPanelProps
       return; // Skip silently
     }
     
-    console.log('🦊 Extracting and sending page content...');
-    try {
-      const content = extractPageContent();
-      if (!content) {
-        console.warn('Could not extract page content');
-        return;
+    console.log('🦊 Requesting content extraction from main page...');
+    console.log('🦊 contentSent:', contentSent, 'contentChanged:', contentChanged);
+    
+    // Send message to content script via Chrome runtime
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs: any) => {
+      if (tabs[0]?.id) {
+        console.log('🦊 Sending message to content script via Chrome runtime');
+        chrome.tabs.sendMessage(tabs[0].id, {
+          type: 'EXTRACT_AND_SEND_CONTENT'
+        }).catch((error: any) => {
+          console.error('🦊 Error sending message to content script:', error);
+        });
+      } else {
+        console.error('🦊 No active tab found');
       }
-
-      const metadata = getPageMetadata();
-      
-      try {
-        await sendContentToBackend(content, metadata);
-        console.log('✅ Content sent to backend successfully');
-      } catch (error) {
-        console.error('❌ Failed to send content to backend:', error);
-      }
-      
-      // Always mark content as sent, regardless of backend success/failure
-      setContentSent(true);
-      setContentChanged(false); // Reset the change flag
-    } catch (error) {
-      console.error('❌ Error in sendContentToBackendIfNeeded:', error);
-    }
+    });
+    
+    // Mark content as sent to prevent repeated requests
+    setContentSent(true);
+    setContentChanged(false);
   };
 
   const [sendMessage] = useState(() => {

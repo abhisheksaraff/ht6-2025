@@ -265,5 +265,145 @@ document.addEventListener('scroll', () => {
   }
 });
 
+// Content monitoring variables
+let contentObserver: MutationObserver | null = null;
+let lastContentHash: string = '';
+
+// Function to create content hash
+function createContentHash(text: string): string {
+  let hash = 0;
+  if (text.length === 0) return hash.toString();
+  
+  for (let i = 0; i < text.length; i++) {
+    const char = text.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32-bit integer
+  }
+  
+  return hash.toString();
+}
+
+// Function to start content monitoring
+function startContentMonitoring() {
+  if (contentObserver) {
+    contentObserver.disconnect();
+  }
+  
+  console.log('🦊 Starting content monitoring...');
+  
+  contentObserver = new MutationObserver((mutations) => {
+    // Filter out mutations from extension elements
+    const relevantMutations = mutations.filter(mutation => {
+      const target = mutation.target as Element;
+      return !target.closest('.chat-panel') && 
+             !target.closest('#focus-fox-extension') &&
+             !target.classList.contains('fox-btn');
+    });
+    
+    if (relevantMutations.length > 0) {
+      // Check if content actually changed
+      const currentContent = document.body.textContent || '';
+      const currentHash = createContentHash(currentContent);
+      
+             if (currentHash !== lastContentHash) {
+         console.log('🦊 Content change detected');
+         lastContentHash = currentHash;
+         
+         // Notify sidebar about content change via Chrome runtime
+         chrome.runtime.sendMessage({
+           type: 'CONTENT_CHANGED'
+         }).catch((error: any) => {
+           console.error('🦊 Error sending content change notification:', error);
+         });
+       }
+    }
+  });
+  
+  // Start observing
+  contentObserver.observe(document.body, {
+    childList: true,
+    subtree: true,
+    characterData: true,
+    attributes: true
+  });
+  
+  // Set initial hash
+  lastContentHash = createContentHash(document.body.textContent || '');
+}
+
+// Listen for messages from sidebar via Chrome runtime
+chrome.runtime.onMessage.addListener((message: any, _sender: any, sendResponse: any) => {
+  console.log('🦊 Content script received Chrome message:', message);
+  
+  if (message.type === 'EXTRACT_AND_SEND_CONTENT') {
+    console.log('🦊 Content script received extract request');
+    extractAndSendContentFromMainPage();
+  } else if (message.type === 'START_CONTENT_MONITORING') {
+    console.log('🦊 Starting content monitoring...');
+    startContentMonitoring();
+  }
+  
+  // Send response back
+  sendResponse({ success: true });
+});
+
+// Function to extract and send content from main page context
+async function extractAndSendContentFromMainPage() {
+  try {
+    console.log('🦊 Extracting content from main page...');
+    
+    // Simple content extraction for main page
+    const content = {
+      title: document.title,
+      content: document.body.innerHTML,
+      textContent: document.body.textContent || '',
+      length: document.body.textContent?.length || 0,
+      excerpt: document.querySelector('meta[name="description"]')?.getAttribute('content') || '',
+      byline: '',
+      siteName: window.location.hostname,
+      publishedTime: ''
+    };
+    
+    const metadata = {
+      url: window.location.href,
+      title: document.title,
+      domain: window.location.hostname,
+      timestamp: new Date().toISOString()
+    };
+    
+    console.log('📄 Extracted content:', {
+      title: content.title,
+      contentLength: content.textContent.length,
+      url: metadata.url
+    });
+    
+    try {
+      const response = await fetch('http://localhost:8787/api/content', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          content: content.textContent,
+          role: "user"
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const result = await response.json();
+      console.log('✅ Content sent to backend successfully from main page');
+      
+      return result;
+    } catch (error) {
+      console.error('❌ Failed to send content to backend:', error);
+    }
+  } catch (error) {
+    console.error('❌ Error extracting content from main page:', error);
+  }
+}
+
 // Initialize selection popup
 createSelectionPopup(); 
