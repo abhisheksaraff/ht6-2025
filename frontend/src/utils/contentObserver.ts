@@ -1,13 +1,18 @@
 import { extractPageContent, getPageMetadata, sendContentToBackend } from './readability';
 
+interface BackendContentResponse {
+  id: string;
+  ttl: number;
+}
+
 export class ContentObserver {
   private observer: MutationObserver | null = null;
   private isObserving = false;
   private lastContentHash: string = '';
   private debounceTimer: NodeJS.Timeout | null = null;
-  private onContentChange: (content: any) => void;
+  private onContentChange: (content: BackendContentResponse) => void;
 
-  constructor(onContentChange: (content: any) => void) {
+  constructor(onContentChange: (content: BackendContentResponse) => void) {
     this.onContentChange = onContentChange;
   }
 

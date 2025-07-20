@@ -138,10 +138,8 @@ export default function ChatPanel({ onClose, initialInputValue }: ChatPanelProps
   useEffect(() => {
     localStorage.setItem('chatPanelPosition', panelPosition);
   }, [panelPosition]);
-
-
   
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (inputValue.trim()) {
       
       // Send content to backend on first user message if not already sent
