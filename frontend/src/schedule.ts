@@ -4,7 +4,7 @@ export interface ISchedule {
 }
 
 export class Schedule implements ISchedule {
-  private tasks: Map<string, number> = new Map();
+  private tasks: Map<string, NodeJS.Timeout> = new Map();
 
   add(id: string, t: number, task: () => void): void {
     if (this.tasks.has(id)) {
