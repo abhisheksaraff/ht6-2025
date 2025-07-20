@@ -26,7 +26,7 @@ export default function ChatPanel({ onClose, initialInputValue }: ChatPanelProps
       // Add user message
       addUserMessage(inputValue, quotedText || undefined);
       setInputValue('');
-      
+
       // Clear the quoted text from input area after sending
       if (quotedText) {
         clearQuotedText();

@@ -296,8 +296,8 @@ function startContentMonitoring() {
     const relevantMutations = mutations.filter(mutation => {
       const target = mutation.target as Element;
       return !target.closest('.chat-panel') && 
-             !target.closest('#focus-fox-extension') &&
-             !target.classList.contains('fox-btn');
+            !target.closest('#focus-fox-extension') &&
+            !target.classList.contains('fox-btn');
     });
     
     if (relevantMutations.length > 0) {
@@ -305,7 +305,7 @@ function startContentMonitoring() {
       const currentContent = document.body.textContent || '';
       const currentHash = createContentHash(currentContent);
       
-             if (currentHash !== lastContentHash) {
+            if (currentHash !== lastContentHash) {
          console.log('🦊 Content change detected');
          lastContentHash = currentHash;
          
