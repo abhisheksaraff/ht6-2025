@@ -32,6 +32,7 @@ export default function ChatPanel({ onClose, initialInputValue }: ChatPanelProps
   const [contentChanged, setContentChanged] = useState(false);
   const contentObserverRef = useRef<ContentObserver | null>(null);
   const currentUrlRef = useRef<string>('');
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   // Conditionally use the hook to avoid QueryClient errors
   const [isLoading, setIsLoading] = useState(false);
 
@@ -139,6 +140,21 @@ export default function ChatPanel({ onClose, initialInputValue }: ChatPanelProps
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
   }, []);
+
+  // Focus textarea and position cursor at the end when quoted text is set
+  useEffect(() => {
+    if (quotedText && textareaRef.current) {
+      // Use requestAnimationFrame to ensure DOM is updated
+      requestAnimationFrame(() => {
+        if (textareaRef.current) {
+          textareaRef.current.focus();
+          const length = textareaRef.current.value.length;
+          textareaRef.current.setSelectionRange(length, length);
+          console.log('🦊 Textarea focused and cursor positioned at end');
+        }
+      });
+    }
+  }, [quotedText]);
   
   const handleSendMessage = async () => {
     if (inputValue.trim()) {
@@ -247,6 +263,7 @@ export default function ChatPanel({ onClose, initialInputValue }: ChatPanelProps
           )}
           <div className="input-row">
             <textarea
+              ref={textareaRef}
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               onKeyPress={handleKeyPress}
