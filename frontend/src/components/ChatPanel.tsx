@@ -4,6 +4,7 @@ import './ChatPanel.css';
 import { useContentExtraction } from '../hooks/useContentExtraction';
 import { useMessageHandling } from '../hooks/useMessageHandling';
 import { useQuotedText } from '../hooks/useQuotedText';
+import { useSchedule } from '../hooks/useSchedule';
 
 interface ChatPanelProps {
   onClose?: () => void;
@@ -13,31 +14,52 @@ interface ChatPanelProps {
 export default function ChatPanel({ onClose, initialInputValue }: ChatPanelProps) {
   console.log('🦊 ChatPanel component mounted');
   
+  //input box
   const [inputValue, setInputValue] = useState('');
-  const { sendContentToBackendIfNeeded } = useContentExtraction();
-  const { messages, isLoading, sendMessage, addUserMessage, addAIMessage, addErrorMessage } = useMessageHandling();
   const { quotedText, clearQuotedText, textareaRef } = useQuotedText(initialInputValue);
+
+  //backend
+  const { sendContentToBackendIfNeeded } = useContentExtraction();
+  const { messages, isLoading, sendMessage, addUserMessage, addAIMessage, addErrorMessage, updateContent, addUserStorage } = useMessageHandling();
+
+  const schedule = useSchedule();
   
   const handleSendMessage = async () => {
     if (inputValue.trim()) {
       // Send content to backend on first user message if not already sent
       await sendContentToBackendIfNeeded();
-      
-      // Add user message
       addUserMessage(inputValue, quotedText || undefined);
+      const currInputValue = inputValue;
       setInputValue('');
 
-      // Clear the quoted text from input area after sending
-      if (quotedText) {
-        clearQuotedText();
-      }
-
       try {
+        // awating
         // Send message to backend
-        const result = await sendMessage(inputValue);
+        const result = await sendMessage(currInputValue);
+        
+        //storing
+        // Add user message
+        addUserStorage(result);
+
+        // Clear the quoted text from input area after sending
+        if (quotedText) {
+          clearQuotedText();
+        }
         
         // Add AI response message
-        addAIMessage(result.assistantMessage.content);
+        addAIMessage(result.data.content);
+        
+        
+        //scheduling
+        function task() {
+          updateContent(result.data.id, undefined, undefined).then(() => {
+            schedule.add(result.data.id, result.data.ttl - 6000, () => {
+              task();
+            });
+          });
+        }
+
+        schedule.add(result.data.id, result.data.ttl, task);
       } catch (error) {
         console.error('Error sending message:', error);
         addErrorMessage();
@@ -67,7 +89,7 @@ export default function ChatPanel({ onClose, initialInputValue }: ChatPanelProps
         {messages.map((message) => (
           <div
             key={message.id}
-            className={`message ${message.isUser ? 'user-message' : 'ai-message'}`}
+            className={`${message.role}`}
           >
             <div className="message-content">
               {message.quotedText && (
@@ -76,7 +98,7 @@ export default function ChatPanel({ onClose, initialInputValue }: ChatPanelProps
                   <span className="message-quote-content">{message.quotedText}</span>
                 </div>
               )}
-              {message.text}
+              {message.content}
             </div>
             <div className="message-timestamp">
               {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}

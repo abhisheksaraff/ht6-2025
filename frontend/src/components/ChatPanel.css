@@ -181,11 +181,11 @@
   gap: 4px;
 }
 
-.user-message {
+.user {
   align-items: flex-end;
 }
 
-.ai-message {
+.assistant {
   align-items: flex-start;
 }
 
@@ -198,25 +198,25 @@
   word-wrap: break-word;
 }
 
-.user-message .message-content {
+.user .message-content {
   background: #ff5c1a;
   color: white;
   border-bottom-right-radius: 4px;
 }
 
-.user-message .message-quoted-text {
+.user .message-quoted-text {
   background: rgba(255, 255, 255, 0.15);
 }
 
-.user-message .message-quote-line {
+.user .message-quote-line {
   background: rgba(255, 255, 255, 0.8);
 }
 
-.user-message .message-quote-content {
+.user .message-quote-content {
   color: rgba(255, 255, 255, 0.9);
 }
 
-.ai-message .message-content {
+.assistant .message-content {
   background: #2d2d30;
   color: #cccccc;
   border-bottom-left-radius: 4px;

@@ -21,6 +21,7 @@ export interface IStorage {
   load(id: string): Promise<IContent>;
   filter(shouldLoad: (content: IContent) => boolean): Promise<IContent[]>;
   remove(key: string): Promise<void>;
+  empty(): Promise<void>;
 }
 
 class Storage {
@@ -116,6 +117,16 @@ class Storage {
     const store = transaction.objectStore('contents');
     return new Promise<void>((resolve, reject) => {
       store.delete(key);
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = (event) => reject(event);
+    });
+  }
+
+  async empty(): Promise<void> {
+    const transaction = this.db.transaction('contents', 'readwrite');
+    const store = transaction.objectStore('contents');
+    return new Promise<void>((resolve, reject) => {
+      store.clear();
       transaction.oncomplete = () => resolve();
       transaction.onerror = (event) => reject(event);
     });

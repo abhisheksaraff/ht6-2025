@@ -342,7 +342,7 @@ chrome.runtime.onMessage.addListener((message: any, _sender: any, sendResponse: 
     console.log('🦊 Starting content monitoring...');
     startContentMonitoring();
   }
-  
+
   // Send response back
   sendResponse({ success: true });
 });
