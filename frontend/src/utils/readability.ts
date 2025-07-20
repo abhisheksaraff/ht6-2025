@@ -79,18 +79,14 @@ export async function sendContentToBackend(content: ProcessedContent, metadata: 
   });
   
   try {
-    const response = await fetch('http://localhost:63041/api/content', {
+    const response = await fetch('http://localhost:8787/api/content', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
         content: content.textContent,
-        title: content.title,
-        url: metadata.url,
-        domain: metadata.domain,
-        excerpt: content.excerpt,
-        timestamp: metadata.timestamp
+        role: "user"
       })
     });
     
