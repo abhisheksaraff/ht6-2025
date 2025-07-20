@@ -1,22 +1,28 @@
 import { useState } from 'react';
+import {
+  useQuery,
+  useQueryClient,
+  QueryClient,
+  QueryClientProvider,
+} from '@tanstack/react-query'
 
 export interface Message {
   id: string;
   text: string;
-  isUser: boolean;
+  role: "user" | "assistant";
   timestamp: Date;
-  quotedText?: string;
 }
 
 export function useMessageHandling() {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 'ai-placeholder',
-      text: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
-      isUser: false,
+      text: 'Hi! I\'m Focus Fox. How can I help you today?',
+      role: "user" as const,
       timestamp: new Date()
     }
   ]);
+
   const [isLoading, setIsLoading] = useState(false);
 
   const sendMessage = async (content: string) => {
