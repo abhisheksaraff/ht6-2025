@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useSchedule } from './useSchedule';
 
 // Chrome types declaration
 interface ChromeTab {
@@ -31,8 +32,11 @@ declare const chrome: {
 };
 
 export function useContentExtraction() {
+  const [currentContentId, setCurrentContentId] = useState<string | null>(null)
   const [contentSent, setContentSent] = useState(false);
   const [contentChanged, setContentChanged] = useState(false);
+
+  const schedule = useSchedule();
 
   // Initialize content change detection
   useEffect(() => {
@@ -48,13 +52,27 @@ export function useContentExtraction() {
     });
 
     // Listen for content change notifications from content script
-    const handleContentChange = (message: ChromeMessage) => {
+    const handleContentChange = (message: any) => {
+      function task() {
+          schedule.add(message.data.id, message.data.ttl - 6000, () => {
+            task();
+          });
+      }
       if (message.type === 'CONTENT_CHANGED') {
         console.log('🦊 Content change detected by content script');
         setContentChanged(true);
-      }
-    };
+                schedule.add(message.data.id, message.data.ttl, task);
 
+      } else if (message.type ==='CONTENT_UPDATED' && message.data) {
+        setCurrentContentId(message.data.id);
+
+        if (currentContentId) {
+          schedule.remove(currentContentId);
+        }
+                schedule.add(message.data.id, message.data.ttl, task);
+
+        }
+    };
     // Listen for Chrome runtime messages
     chrome.runtime.onMessage.addListener(handleContentChange);
     return () => chrome.runtime.onMessage.removeListener(handleContentChange);

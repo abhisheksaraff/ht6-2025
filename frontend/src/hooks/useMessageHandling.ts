@@ -63,6 +63,7 @@ export function useMessageHandling() {
         content
       })
     });
+    
     return await response.json();
   };
 
