@@ -7,7 +7,7 @@ import { extractPageContent, getPageMetadata, sendContentToBackend } from '../ut
 interface Message {
   id: string;
   text: string;
-  isUser: boolean;
+  role: "user" | "assistant";
   timestamp: Date;
 }
 
@@ -20,11 +20,16 @@ export default function ChatPanel({ onClose, initialInputValue }: ChatPanelProps
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 'ai-placeholder',
-      text: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
-      isUser: false,
+      text: 'Hi! How can Focus Fox help you?',
+      role: 'assistant',
       timestamp: new Date()
     }
   ]);
+
+  const [content, setContent] = useState<String>([
+    
+  ]);
+  // use states
   const [inputValue, setInputValue] = useState('');
   const [quotedText, setQuotedText] = useState(initialInputValue || '');
   const [contentSent, setContentSent] = useState(false);
@@ -167,12 +172,12 @@ export default function ChatPanel({ onClose, initialInputValue }: ChatPanelProps
       const userMessage: Message = {
         id: Date.now().toString(),
         text: messageContent,
-        isUser: true,
+        role: 'user',
         timestamp: new Date()
       };
       setMessages(prev => [...prev, userMessage]);
       setInputValue('');
-      
+
       // Clear the quoted text from input area after sending
       if (quotedText) {
         setQuotedText('');
@@ -186,7 +191,7 @@ export default function ChatPanel({ onClose, initialInputValue }: ChatPanelProps
         const aiMessage: Message = {
           id: result.assistantMessage.id,
           text: result.assistantMessage.content,
-          isUser: false,
+          role: 'assistant',
           timestamp: new Date()
         };
         setMessages(prev => [...prev, aiMessage]);
@@ -196,7 +201,7 @@ export default function ChatPanel({ onClose, initialInputValue }: ChatPanelProps
         const errorMessage: Message = {
           id: (Date.now() + 1).toString(),
           text: 'Sorry, there was an error processing your request.',
-          isUser: false,
+          role: 'assistant',
           timestamp: new Date()
         };
         setMessages(prev => [...prev, errorMessage]);
@@ -288,7 +293,7 @@ export default function ChatPanel({ onClose, initialInputValue }: ChatPanelProps
         {messages.map((message) => (
           <div
             key={message.id}
-            className={`message ${message.isUser ? 'user-message' : 'ai-message'}`}
+            className={`message ${message.role === 'user' ? 'user-message' : 'ai-message'}`}
           >
             <div className="message-content">
               {message.text}
