@@ -1,7 +1,11 @@
-import { useState, useEffect, useRef } from 'react';
-import './ChatPanel.css';
-import { ContentObserver } from '../utils/contentObserver';
-import { extractPageContent, getPageMetadata, sendContentToBackend } from '../utils/readability';
+import { useState, useEffect, useRef } from "react";
+import "./ChatPanel.css";
+import { ContentObserver } from "../utils/contentObserver";
+import {
+  extractPageContent,
+  getPageMetadata,
+  sendContentToBackend,
+} from "../utils/readability";
 
 interface Message {
   id: string;
@@ -16,30 +20,49 @@ interface ChatPanelProps {
   initialInputValue?: string;
 }
 
-export default function ChatPanel({ onClose, initialInputValue }: ChatPanelProps) {
+export default function ChatPanel({
+  onClose,
+  initialInputValue,
+}: ChatPanelProps) {
   const [messages, setMessages] = useState<Message[]>([
     {
-      id: 'ai-placeholder',
-      text: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
+      id: "ai-placeholder",
+      text: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
       isUser: false,
-      timestamp: new Date()
-    }
+      timestamp: new Date(),
+    },
   ]);
-  const [inputValue, setInputValue] = useState('');
-  const [quotedText, setQuotedText] = useState(initialInputValue || '');
+  const [inputValue, setInputValue] = useState("");
+  const [quotedText, setQuotedText] = useState(initialInputValue || "");
   const [contentSent, setContentSent] = useState(false);
   const contentObserverRef = useRef<ContentObserver | null>(null);
-  const currentUrlRef = useRef<string>('');
+  const currentUrlRef = useRef<string>("");
+
+  // Listening to response from Gemini
+  // npm install eventsource
+  const [data, setData] = useState<{ message: string } | null>();
+  useEffect(() => {
+    try {
+      const evtSource = new EventSource("http://localhost:8787/api/content");
+      evtSource.onmessage = (event) => {
+        if (event.data) {
+          setData(JSON.parse(event.data));
+        }
+      };
+    } catch (err) {
+      console.log("Failed listening from Event Source ", err);
+    }
+  }, []);
 
   // Initialize content observer and handle URL changes
   useEffect(() => {
     const currentUrl = window.location.href;
-    
+
     // Reset content sent flag when URL changes
     if (currentUrl !== currentUrlRef.current) {
       currentUrlRef.current = currentUrl;
       setContentSent(false);
-      
+
       // Stop previous observer if it exists
       if (contentObserverRef.current) {
         contentObserverRef.current.stop();
@@ -49,11 +72,11 @@ export default function ChatPanel({ onClose, initialInputValue }: ChatPanelProps
     // Initialize content observer
     if (!contentObserverRef.current) {
       contentObserverRef.current = new ContentObserver((content) => {
-        console.log('🔄 Content updated from observer:', content);
+        console.log("🔄 Content updated from observer:", content);
         setContentSent(true);
       });
       contentObserverRef.current.start();
-      console.log('👀 Content observer started');
+      console.log("👀 Content observer started");
     }
 
     // Cleanup on unmount
@@ -67,33 +90,33 @@ export default function ChatPanel({ onClose, initialInputValue }: ChatPanelProps
   // Function to send content to backend
   const sendContentToBackendIfNeeded = async () => {
     if (contentSent) {
-      console.log('Content already sent for this page, skipping...');
+      console.log("Content already sent for this page, skipping...");
       return;
     }
-    
-    console.log('🦊 Focus Fox: Extracting page content...');
+
+    console.log("🦊 Focus Fox: Extracting page content...");
     try {
       const content = extractPageContent();
       if (!content) {
-        console.warn('Could not extract page content');
+        console.warn("Could not extract page content");
         return;
       }
 
-      console.log('📄 Extracted content:', {
+      console.log("📄 Extracted content:", {
         title: content.title,
         textLength: content.textContent.length,
-        excerpt: content.excerpt.substring(0, 100) + '...'
+        excerpt: content.excerpt.substring(0, 100) + "...",
       });
 
       const metadata = getPageMetadata();
-      console.log('🌐 Page metadata:', metadata);
-      
-      console.log('📤 Sending to backend...');
+      console.log("🌐 Page metadata:", metadata);
+
+      console.log("📤 Sending to backend...");
       await sendContentToBackend(content, metadata);
       setContentSent(true);
-      console.log('✅ Page content sent to backend successfully');
+      console.log("✅ Page content sent to backend successfully");
     } catch (error) {
-      console.error('❌ Failed to send content to backend:', error);
+      console.error("❌ Failed to send content to backend:", error);
     }
   };
 
@@ -101,26 +124,26 @@ export default function ChatPanel({ onClose, initialInputValue }: ChatPanelProps
     if (inputValue.trim()) {
       // Send content to backend on first user message if not already sent
       await sendContentToBackendIfNeeded();
-      
+
       const newMessage: Message = {
         id: Date.now().toString(),
         text: inputValue,
         isUser: true,
         timestamp: new Date(),
-        quotedText: quotedText || undefined
+        quotedText: quotedText || undefined,
       };
-      setMessages(prev => [...prev, newMessage]);
-      setInputValue('');
-      
+      setMessages((prev) => [...prev, newMessage]);
+      setInputValue("");
+
       // Clear the quoted text from input area after sending
       if (quotedText) {
-        setQuotedText('');
+        setQuotedText("");
       }
     }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
     }
@@ -136,31 +159,40 @@ export default function ChatPanel({ onClose, initialInputValue }: ChatPanelProps
     <div className="chat-panel">
       <div className="chat-header">
         <h3>Focus Fox</h3>
-        <button className="close-btn" onClick={handleClose}>×</button>
+        <button className="close-btn" onClick={handleClose}>
+          ×
+        </button>
       </div>
-      
+
       <div className="chat-messages">
         {messages.map((message) => (
           <div
             key={message.id}
-            className={`message ${message.isUser ? 'user-message' : 'ai-message'}`}
+            className={`message ${
+              message.isUser ? "user-message" : "ai-message"
+            }`}
           >
             <div className="message-content">
               {message.quotedText && (
                 <div className="message-quoted-text">
                   <div className="message-quote-line"></div>
-                  <span className="message-quote-content">{message.quotedText}</span>
+                  <span className="message-quote-content">
+                    {message.quotedText}
+                  </span>
                 </div>
               )}
               {message.text}
             </div>
             <div className="message-timestamp">
-              {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              {message.timestamp.toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
             </div>
           </div>
         ))}
       </div>
-      
+
       <div className="chat-input-container">
         <div className="input-wrapper">
           {quotedText && (
@@ -174,7 +206,9 @@ export default function ChatPanel({ onClose, initialInputValue }: ChatPanelProps
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               onKeyPress={handleKeyPress}
-              placeholder={quotedText ? "Ask about the quoted text..." : "Ask anything..."}
+              placeholder={
+                quotedText ? "Ask about the quoted text..." : "Ask anything..."
+              }
               className="chat-input"
               rows={1}
             />
@@ -183,7 +217,14 @@ export default function ChatPanel({ onClose, initialInputValue }: ChatPanelProps
               className="send-button"
               disabled={!inputValue.trim()}
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
                 <polygon points="5,3 19,12 5,21"></polygon>
               </svg>
             </button>
@@ -192,4 +233,4 @@ export default function ChatPanel({ onClose, initialInputValue }: ChatPanelProps
       </div>
     </div>
   );
-} 
+}
