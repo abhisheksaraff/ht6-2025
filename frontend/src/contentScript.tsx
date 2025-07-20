@@ -256,6 +256,8 @@ function createSelectionPopup() {
   selectionPopup = document.createElement('div');
   selectionPopup.style.cssText = `
     position: fixed;
+    top: 0;
+    left: 0;
     background: #ff5c1a;
     border: 1px solid #ff5c1a;
     border-radius: 8px;
@@ -266,9 +268,11 @@ function createSelectionPopup() {
     font-size: 14px;
     color: white;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: background-color 0.2s ease;
     display: none;
     pointer-events: auto;
+    transform: translate3d(0, 0, 0);
+    will-change: transform;
   `;
   
   selectionPopup.innerHTML = 'Ask Focus Fox anything...';
@@ -333,20 +337,12 @@ function showSelectionPopup() {
   const range = selection.getRangeAt(0);
   const rect = range.getBoundingClientRect();
   
-  // Position popup below the selection
-  selectionPopup.style.left = `${rect.left + window.scrollX}px`;
-  selectionPopup.style.top = `${rect.bottom + window.scrollY + 5}px`;
+  // Direct positioning - no checks, no parsing, just set the position
+  selectionPopup.style.transform = `translate3d(${rect.left}px, ${rect.bottom + 5}px, 0)`;
   selectionPopup.style.display = 'block';
   
-  // Ensure popup is visible even when panel is open
-  if (panelOpen) {
-    // If panel is open, we need to send the selected text to the existing panel
-    // instead of opening a new one
-    selectionPopup.innerHTML = 'Add to chat...';
-  } else {
-    selectionPopup.innerHTML = 'Ask Focus Fox anything...';
-  }
-  
+  // Update content based on panel state
+  selectionPopup.innerHTML = panelOpen ? 'Add to chat...' : 'Ask Focus Fox anything...';
 }
 
 function hideSelectionPopup() {
@@ -380,6 +376,15 @@ document.addEventListener('selectionchange', () => {
   const selection = window.getSelection();
   if (!selection || !selection.toString().trim()) {
     hideSelectionPopup();
+  }
+});
+
+// Update popup position when scrolling while text is selected
+document.addEventListener('scroll', () => {
+  const selection = window.getSelection();
+  if (selection && selection.toString().trim() && selectionPopup && selectionPopup.style.display !== 'none') {
+    // Immediate update - no throttling, no delays
+    showSelectionPopup();
   }
 });
 
