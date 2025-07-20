@@ -9,9 +9,9 @@ app.post("/api/content", post);
 app.put("/api/content", put);
 app.options("/api/content", options);
 
-app.post("/api/generate", async (c) => {
+app.get("/api/generate", async (c) => {
   const generate = new Generate(new GeminiClient(c.env.GEMINI_API_KEY));
-  return generate.post(c);
+  return generate.get(c);
 });
 
 export default app;

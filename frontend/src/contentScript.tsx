@@ -337,7 +337,13 @@ chrome.runtime.onMessage.addListener((message: any, _sender: any, sendResponse: 
   
   if (message.type === 'EXTRACT_AND_SEND_CONTENT') {
     console.log('🦊 Content script received extract request');
-    extractAndSendContentFromMainPage();
+    const result = extractAndSendContentFromMainPage();
+    chrome.runtime.sendMessage({
+      type:'CONTENT_UPDATED',
+      data: result
+    }).catch((error: any) => {
+      console.log("error", error)
+    })
   } else if (message.type === 'START_CONTENT_MONITORING') {
     console.log('🦊 Starting content monitoring...');
     startContentMonitoring();
@@ -378,7 +384,7 @@ async function extractAndSendContentFromMainPage() {
     });
     
     try {
-      const response = await fetch('http://localhost:8787/api/content', {
+      const response = await fetch('http://127.0.0.1:8787/api/content', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -395,7 +401,7 @@ async function extractAndSendContentFromMainPage() {
       
       const result = await response.json();
       console.log('✅ Content sent to backend successfully from main page');
-      
+      console.log(result)
       return result;
     } catch (error) {
       console.error('❌ Failed to send content to backend:', error);

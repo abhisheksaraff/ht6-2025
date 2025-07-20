@@ -34,17 +34,21 @@ export function useMessageHandling() {
 
   const [isLoading, setIsLoading] = useState(false);
 
-  const sendMessage = async (content: string) => {
+  const sendMessage = async (content: string, role: 'user' | 'assistant' | 'system' = 'user', ) => {
     try {
       setIsLoading(true);
       // For now, simulate a response since we don't have a backend
-      const response = await fetch('http://localhost:8787/api/content', {
+      const response = await fetch('http://127.0.0.1:8787/api/content', {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({ 
-          role: 'user' as const,
+          role: role,
           content: content
         }),
       });
+
       return await response.json();
     } catch (error) {
       console.error('Failed to send message:', error);
@@ -55,7 +59,7 @@ export function useMessageHandling() {
   };
 
   const updateContent = async (id: string, role: 'user' | 'assistant' | undefined = undefined, content: string | undefined = undefined) => {
-    const response = await fetch('http://localhost:8787/api/content', {
+    const response = await fetch('http://127.0.0.1:8787/api/content', {
       method: 'PUT',
       body: JSON.stringify({
         id,
@@ -79,8 +83,6 @@ export function useMessageHandling() {
     setMessages(prev => [...prev, userMessage]);
   };
 
-
-
   const addAIMessage = (content: string) => {
     const aiMessage: Message = {
       id: Date.now().toString(),
@@ -89,6 +91,10 @@ export function useMessageHandling() {
       timestamp: new Date()
     };
 
+    setMessages(prev => [...prev, aiMessage]);
+  };
+
+  const addAIStorage = (aiMessage: Message) => {
     if (storage) {
       const storageContent: IContent = {
         id: aiMessage.id,
@@ -100,9 +106,8 @@ export function useMessageHandling() {
       };
       storage.current?.store([storageContent]);
     }
-
-    setMessages(prev => [...prev, aiMessage]);
   };
+  
 
   const addErrorMessage = () => {
     const errorMessage: Message = {
@@ -148,6 +153,7 @@ export function useMessageHandling() {
     addErrorMessage,
     setIsLoading,
     updateContent,
-    addUserStorage
+    addUserStorage,
+    addAIStorage
   };
-} 
+}

@@ -5,6 +5,7 @@ import { useContentExtraction } from '../hooks/useContentExtraction';
 import { useMessageHandling } from '../hooks/useMessageHandling';
 import { useQuotedText } from '../hooks/useQuotedText';
 import { useSchedule } from '../hooks/useSchedule';
+import { GetAIResponse } from '../hooks/GetAIResponse';
 
 interface ChatPanelProps {
   onClose?: () => void;
@@ -17,13 +18,35 @@ export default function ChatPanel({ onClose, initialInputValue }: ChatPanelProps
   //input box
   const [inputValue, setInputValue] = useState('');
   const { quotedText, clearQuotedText, textareaRef } = useQuotedText(initialInputValue);
+  const [generatingContent, setGeneratingContent] = useState('');
 
   //backend
   const { sendContentToBackendIfNeeded } = useContentExtraction();
-  const { messages, isLoading, sendMessage, addUserMessage, addAIMessage, addErrorMessage, updateContent, addUserStorage } = useMessageHandling();
+  const { messages, isLoading, sendMessage, addUserMessage, addAIMessage, addErrorMessage, updateContent, addUserStorage, addAIStorage } = useMessageHandling();
 
   const schedule = useSchedule();
   
+  const handleAiMessage = async () => {
+  addAIMessage(generatingContent);
+  try {
+    const result = await sendMessage(generatingContent, 'assistant' as const);
+    addAIStorage(result);
+
+    function task() {
+      updateContent(result.data.id, undefined, undefined).then(() => {
+        schedule.add(result.data.id, result.data.ttl - 6000, () => {
+          task();
+        });
+      });
+    }
+
+    schedule.add(result.data.id, result.data.ttl, task);
+  } catch (error) {
+    console.error('Error sending message:', error);
+    addErrorMessage();
+  }
+};
+
   const handleSendMessage = async () => {
     if (inputValue.trim()) {
       // Send content to backend on first user message if not already sent
@@ -46,10 +69,6 @@ export default function ChatPanel({ onClose, initialInputValue }: ChatPanelProps
           clearQuotedText();
         }
         
-        // Add AI response message
-        addAIMessage(result.data.content);
-        
-        
         //scheduling
         function task() {
           updateContent(result.data.id, undefined, undefined).then(() => {
@@ -60,8 +79,9 @@ export default function ChatPanel({ onClose, initialInputValue }: ChatPanelProps
         }
 
         schedule.add(result.data.id, result.data.ttl, task);
+        GetAIResponse(setGeneratingContent, messages.map(e => {return e.id}), handleAiMessage)
       } catch (error) {
-        console.error('Error sending message:', error);
+        console.error('Error asending message:', error);
         addErrorMessage();
       }
     }
