@@ -175,9 +175,9 @@ function createSelectionPopup() {
     // Hide popup immediately
     hideSelectionPopup();
     
-    // Open sidebar with selected text
+    // Check if sidebar is already open and send text directly, otherwise open sidebar
     chrome.runtime.sendMessage({ 
-      type: 'OPEN_SIDEBAR_WITH_TEXT', 
+      type: 'SEND_TEXT_TO_SIDEBAR', 
       text: selectedText 
     });
   });

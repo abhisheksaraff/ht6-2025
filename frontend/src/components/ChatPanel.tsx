@@ -9,6 +9,7 @@ interface Message {
   text: string;
   isUser: boolean;
   timestamp: Date;
+  quotedText?: string;
 }
 
 interface ChatPanelProps {
@@ -130,6 +131,7 @@ export default function ChatPanel({ onClose, initialInputValue }: ChatPanelProps
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       if (event.data.type === 'ADD_SELECTED_TEXT' && event.data.text) {
+        console.log('🦊 ChatPanel received selected text:', event.data.text);
         setQuotedText(event.data.text);
       }
     };
@@ -144,17 +146,12 @@ export default function ChatPanel({ onClose, initialInputValue }: ChatPanelProps
       // Send content to backend on first user message if not already sent
       await sendContentToBackendIfNeeded();
       
-      // Create message content with quoted text if available
-      let messageContent = inputValue;
-      if (quotedText) {
-        messageContent = `"${quotedText}"\n\n${inputValue}`;
-      }
-      
       const userMessage: Message = {
         id: Date.now().toString(),
-        text: messageContent,
+        text: inputValue,
         isUser: true,
-        timestamp: new Date()
+        timestamp: new Date(),
+        quotedText: quotedText || undefined
       };
       setMessages(prev => [...prev, userMessage]);
       setInputValue('');
@@ -166,7 +163,7 @@ export default function ChatPanel({ onClose, initialInputValue }: ChatPanelProps
 
       try {
         // Send message to backend using TanStack Query
-        const result = await sendMessage(messageContent);
+        const result = await sendMessage(inputValue);
         
         // Add AI response message
         const aiMessage: Message = {
@@ -215,6 +212,12 @@ export default function ChatPanel({ onClose, initialInputValue }: ChatPanelProps
             className={`message ${message.isUser ? 'user-message' : 'ai-message'}`}
           >
             <div className="message-content">
+              {message.quotedText && (
+                <div className="message-quoted-text">
+                  <div className="message-quote-line"></div>
+                  <span className="message-quote-content">{message.quotedText}</span>
+                </div>
+              )}
               {message.text}
             </div>
             <div className="message-timestamp">

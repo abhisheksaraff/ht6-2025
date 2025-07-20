@@ -1,6 +1,9 @@
 import { createRoot } from 'react-dom/client';
 import ChatPanel from './components/ChatPanel';
 
+// Chrome types declaration
+declare const chrome: any;
+
 // Initialize the sidebar
 function initializeSidebar() {
   const container = document.getElementById('root');
@@ -20,17 +23,37 @@ function initializeSidebar() {
   );
 }
 
-// Listen for messages from content script
-window.addEventListener('message', (event) => {
-  if (event.data.type === 'SIDEBAR_OPEN_WITH_TEXT' && event.data.text) {
-    // Handle opening sidebar with selected text
-    // This will be handled by the ChatPanel component
-    window.postMessage({
-      type: 'ADD_SELECTED_TEXT',
-      text: event.data.text
-    }, '*');
-  }
-});
+// Check for selected text from storage when sidebar opens
+function checkForSelectedText() {
+  chrome.storage.local.get(['selectedText', 'timestamp'], (result: any) => {
+    if (result.selectedText && result.timestamp) {
+      // Check if the timestamp is recent (within last 5 seconds)
+      const now = Date.now();
+      if (now - result.timestamp < 5000) {
+        console.log('🦊 Found selected text in storage:', result.selectedText);
+        // Pass the selected text to ChatPanel
+        window.postMessage({
+          type: 'ADD_SELECTED_TEXT',
+          text: result.selectedText
+        }, '*');
+        
+        // Clear the stored text
+        chrome.storage.local.remove(['selectedText', 'timestamp']);
+      }
+    }
+  });
+}
+
+
+
+// Check for selected text when sidebar initializes
+setTimeout(checkForSelectedText, 100);
+
+// Also check when the window gains focus (in case sidebar was already open)
+window.addEventListener('focus', checkForSelectedText);
+
+// Check periodically for new selected text (every 500ms)
+setInterval(checkForSelectedText, 500);
 
 // Initialize when DOM is ready
 if (document.readyState === 'loading') {

@@ -5,7 +5,8 @@
   "description": "An AI chat assistant that appears as a sidebar on any webpage",
   "permissions": [
     "activeTab",
-    "sidePanel"
+    "sidePanel",
+    "storage"
   ],
   "side_panel": {
     "default_path": "public/sidebar.html"
